@@ -44,7 +44,7 @@ public class FileAdapter extends BaseAdapter {
         this.musicRunnable = new Runnable() {
             @Override
             public void run() {
-                if(FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax()) {
+                if(FileActivity.currentMediaPlayer.getCurrentPosition() < FileActivity.currentMediaPlayer.getDuration()) {
                     try {
                         if (FileActivity.currentMediaPlayer.isPlaying()) {
                             FileActivity.seekBar.incrementProgressBy(1);
@@ -64,7 +64,7 @@ public class FileAdapter extends BaseAdapter {
                         FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
                         FileActivity.seekBar.setProgress(0);
                         FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile)+1);
-                        FileActivity.seekBar.removeCallbacks(this);
+                        while(FileActivity.seekBar.removeCallbacks(this));
                         FileActivity.seekBar.postDelayed(this, 1000);
                         sendCurrentLyric();
                         FileActivity.currentMediaPlayer.start();
@@ -197,7 +197,7 @@ public class FileAdapter extends BaseAdapter {
             FileActivity.currentMediaPlayer.stop();
         }
         sendCurrentLyric();
-        FileActivity.seekBar.removeCallbacks(musicRunnable);
+        while(FileActivity.seekBar.removeCallbacks(musicRunnable));
         FileActivity.seekBar.postDelayed(musicRunnable, 1000);
     }
 

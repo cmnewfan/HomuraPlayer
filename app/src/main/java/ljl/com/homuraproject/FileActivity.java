@@ -79,7 +79,7 @@ public class FileActivity extends Activity{
                 WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
         );
         //this.initView();
-        // ×¢²áÊÂ¼þ
+        // ×¢ï¿½ï¿½ï¿½Â¼ï¿½
         TelephonyManager manager = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
         manager.listen(new MyPhoneStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
         registerReceiver(myReceiver, new IntentFilter("android.intent.action.PHONE_STATE"));
@@ -186,7 +186,8 @@ public class FileActivity extends Activity{
                     seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
                     seekBar.setProgress(0);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1);
-                    seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                     seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
                     fileAdapter.sendCurrentLyric();
                     Message mes = handler.obtainMessage();
@@ -208,7 +209,8 @@ public class FileActivity extends Activity{
                     seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
                     seekBar.setProgress(0);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1);
-                    seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                     seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
                     fileAdapter.sendCurrentLyric();
                     Message mes = handler.obtainMessage();
@@ -287,7 +289,8 @@ public class FileActivity extends Activity{
                 if(currentPlayingFile!=null){
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                 if(currentMediaPlayer!=null){
                     editor.putInt("LastPlayingTime",seekBar.getProgress());
                     if(currentMediaPlayer.isPlaying()){
@@ -384,10 +387,10 @@ public class FileActivity extends Activity{
                 editor.putInt("LastPlayingTime", seekBar.getProgress());
                 editor.commit();
             }
-            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) ) {//µ±°´ÏÂµçÔ´¼ü£¬ÆÁÄ»±äºÚµÄÊ±ºò
+            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) ) {//ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½Úµï¿½Ê±ï¿½ï¿½
                 Screen_Off_Flag = true;
             }
-            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) ) {//µ±½â³ýËøÆÁµÄÊ±ºò
+            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) ) {//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 
             }
             if(intent.getAction().equals("android.intent.action.PHONE_STATE")){
@@ -395,7 +398,9 @@ public class FileActivity extends Activity{
                 if (currentPlayingFile != null) {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+
+                //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                 if (currentMediaPlayer != null) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
                     if (currentMediaPlayer.isPlaying()) {
@@ -419,7 +424,8 @@ public class FileActivity extends Activity{
                     if (currentPlayingFile != null) {
                         editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                     }
-                    seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                     if (currentMediaPlayer != null) {
                         editor.putInt("LastPlayingTime", seekBar.getProgress());
                         if (currentMediaPlayer.isPlaying()) {
