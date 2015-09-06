@@ -123,7 +123,7 @@ public class FileActivity extends Activity{
                                    // Creates an explicit intent for an Activity in your app
                    Intent resultIntent = new Intent(getApplicationContext(), FileActivity.class);
                    // The stack builder object will contain an artificial back stack for the
-                   // started Activity.
+                   // start Activity.
                    // This ensures that navigating backward from the Activity leads out of
                    // your application to the Home screen.
                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
