@@ -13,6 +13,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
 import com.mpatric.mp3agic.UnsupportedTagException;
@@ -44,7 +45,7 @@ public class FileAdapter extends BaseAdapter {
         this.musicRunnable = new Runnable() {
             @Override
             public void run() {
-                if(FileActivity.currentMediaPlayer.getCurrentPosition() < FileActivity.currentMediaPlayer.getDuration()) {
+                if(FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax()-1) {
                     try {
                         if (FileActivity.currentMediaPlayer.isPlaying()) {
                             FileActivity.seekBar.incrementProgressBy(1);
@@ -57,18 +58,21 @@ public class FileAdapter extends BaseAdapter {
                     }
                 }
                 else{
-                    FileActivity.currentMediaPlayer.stop();
+                    if(FileActivity.currentMediaPlayer!=null&&FileActivity.currentMediaPlayer.isPlaying()) {
+                        FileActivity.currentMediaPlayer.stop();
+                    }
                     if(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size()-1) {
                         FileActivity.currentMediaPlayer = MediaPlayer.create(tempContext,
                                 Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile)+1)));
                         FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
                         FileActivity.seekBar.setProgress(0);
                         FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile)+1);
-                        while(FileActivity.seekBar.removeCallbacks(this));
-                        FileActivity.seekBar.postDelayed(this, 1000);
+                        //while(FileActivity.seekBar.removeCallbacks(this));
+                        //FileActivity.seekBar.postDelayed(this, 1000);
                         sendCurrentLyric();
                         FileActivity.currentMediaPlayer.start();
                         sendMessage("Play");
+                        FileActivity.seekBar.postDelayed(this, 1000);
                         notifyDataSetChanged();
                     }
                     else{
@@ -197,8 +201,10 @@ public class FileAdapter extends BaseAdapter {
             FileActivity.currentMediaPlayer.stop();
         }
         sendCurrentLyric();
-        while(FileActivity.seekBar.removeCallbacks(musicRunnable));
-        FileActivity.seekBar.postDelayed(musicRunnable, 1000);
+        /*if(FileActivity.currentMediaPlayer.isPlaying()) {
+            while (FileActivity.seekBar.removeCallbacks(musicRunnable)) ;
+            FileActivity.seekBar.postDelayed(musicRunnable, 1000);
+        }*/
     }
 
     public static void sendMessage(String message) {
@@ -215,11 +221,24 @@ public class FileAdapter extends BaseAdapter {
                 String test = id3v1Tag.getTitle();
                 FileActivity.currentPlayingTitle = new String(test.getBytes("ISO-8859-1"),"GBK");
             }
+            else if(mp3File.hasId3v2Tag()){
+                ID3v2 id3v2Tag = mp3File.getId3v2Tag();
+                String test = id3v2Tag.getTitle();
+                FileActivity.currentPlayingTitle = new String(test.getBytes("ISO-8859-1"),"GBK");
+            }
+            else{
+                FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
+                        (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (UnsupportedTagException e) {
             e.printStackTrace();
         } catch (InvalidDataException e) {
+            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
+                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
+        }
+        catch (Exception ex){
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                     (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
         }

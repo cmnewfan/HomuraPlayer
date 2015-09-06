@@ -1,6 +1,8 @@
 package ljl.com.homuraproject;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +13,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.TaskStackBuilder;
+import android.support.v7.app.NotificationCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
@@ -51,6 +55,7 @@ public class FileActivity extends Activity{
     private TextView myTitle;
     private ImageView main_backgroundImage;
     private SharedPreferences sharedPreferences;
+    private static final int mId = 1;
     boolean pauseFlag = false;
 
     public static Handler handler;
@@ -110,6 +115,32 @@ public class FileActivity extends Activity{
                    lrcView.setLrc(rows);
                }
                else if(msg.obj.toString().equals("SetMusicTitle")){
+                   NotificationCompat.Builder mBuilder =
+                           (NotificationCompat.Builder) new NotificationCompat.Builder(getApplicationContext())
+                                   .setSmallIcon(R.drawable.icon)
+                                   .setContentTitle("Title:")
+                                   .setContentText(currentPlayingTitle);
+                                   // Creates an explicit intent for an Activity in your app
+                   Intent resultIntent = new Intent(getApplicationContext(), FileActivity.class);
+                   // The stack builder object will contain an artificial back stack for the
+                   // started Activity.
+                   // This ensures that navigating backward from the Activity leads out of
+                   // your application to the Home screen.
+                   TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+                   // Adds the back stack for the Intent (but not the Intent itself)
+                   stackBuilder.addParentStack(FileActivity.class);
+                   // Adds the Intent that starts the Activity to the top of the stack
+                   stackBuilder.addNextIntent(resultIntent);
+                   PendingIntent resultPendingIntent =
+                           stackBuilder.getPendingIntent(
+                                   0,
+                                   PendingIntent.FLAG_UPDATE_CURRENT
+                           );
+                   mBuilder.setContentIntent(resultPendingIntent);
+                   NotificationManager mNotificationManager =
+                           (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+// mId allows you to update the notification later on.
+                   mNotificationManager.notify(mId, mBuilder.build());
                    setTitle(currentPlayingTitle);
                }
                else if(msg.obj.toString().equals("PlayLrc")){
@@ -179,16 +210,20 @@ public class FileActivity extends Activity{
         this.prevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                currentMediaPlayer.stop();
+                if(currentMediaPlayer!=null&&currentMediaPlayer.isPlaying()) {
+                    currentMediaPlayer.stop();
+                }
                 if(currentPlayList.indexOf(currentPlayingFile) > 0) {
                     currentMediaPlayer = MediaPlayer.create(FileActivity.this,
                             Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1)));
                     seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
                     seekBar.setProgress(0);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1);
-                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                    /*if(currentMediaPlayer.isPlaying()) {
+                        while (seekBar.removeCallbacks(FileAdapter.musicRunnable));
+                        seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
+                    }*/
                     //seekBar.removeCallbacks(FileAdapter.musicRunnable);
-                    seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
                     fileAdapter.sendCurrentLyric();
                     Message mes = handler.obtainMessage();
                     mes.obj = "Play";
@@ -202,16 +237,19 @@ public class FileActivity extends Activity{
         this.nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                currentMediaPlayer.stop();
+                if(currentMediaPlayer!=null&&currentMediaPlayer.isPlaying()) {
+                    currentMediaPlayer.stop();
+                }
                 if(currentPlayList.indexOf(currentPlayingFile) < currentPlayList.size()-1) {
                     currentMediaPlayer = MediaPlayer.create(FileActivity.this,
                             Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1)));
                     seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
                     seekBar.setProgress(0);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1);
-                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
-                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
-                    seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
+                    /*if(currentMediaPlayer.isPlaying()) {
+                        while (seekBar.removeCallbacks(FileAdapter.musicRunnable)) ;
+                        seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
+                    }*/
                     fileAdapter.sendCurrentLyric();
                     Message mes = handler.obtainMessage();
                     mes.obj = "Play";
@@ -289,8 +327,7 @@ public class FileActivity extends Activity{
                 if(currentPlayingFile!=null){
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
-                //seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                seekBar.removeCallbacks(FileAdapter.musicRunnable);
                 if(currentMediaPlayer!=null){
                     editor.putInt("LastPlayingTime",seekBar.getProgress());
                     if(currentMediaPlayer.isPlaying()){
@@ -326,8 +363,9 @@ public class FileActivity extends Activity{
             FileAdapter.beforeMusicPlay(currentPlayingFile, currentPlayingFile.getParentFile().listFiles());
             currentMediaPlayer = MediaPlayer.create(this, Uri.fromFile(currentPlayingFile));
             currentMediaPlayer.seekTo(LastPlayingTime * 1000);
-            FileActivity.seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
-            FileActivity.seekBar.setProgress(LastPlayingTime);
+            seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
+            seekBar.setProgress(LastPlayingTime);
+            seekBar.postDelayed(FileAdapter.musicRunnable,1000);
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
             total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
         }
@@ -383,14 +421,14 @@ public class FileActivity extends Activity{
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
             if (Intent.ACTION_SCREEN_ON.equals(intent.getAction()) ) {//
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putInt("LastPlayingTime", seekBar.getProgress());
-                editor.commit();
+                //SharedPreferences.Editor editor = sharedPreferences.edit();
+                //editor.putInt("LastPlayingTime", seekBar.getProgress());
+                //editor.commit();
             }
-            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) ) {//�����µ�Դ������Ļ��ڵ�ʱ��
+            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) ) {//
                 Screen_Off_Flag = true;
             }
-            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) ) {//�����������ʱ��
+            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) ) {//
 
             }
             if(intent.getAction().equals("android.intent.action.PHONE_STATE")){
@@ -398,9 +436,7 @@ public class FileActivity extends Activity{
                 if (currentPlayingFile != null) {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
-
-                //seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                seekBar.removeCallbacks(FileAdapter.musicRunnable);
                 if (currentMediaPlayer != null) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
                     if (currentMediaPlayer.isPlaying()) {
@@ -424,8 +460,7 @@ public class FileActivity extends Activity{
                     if (currentPlayingFile != null) {
                         editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                     }
-                    while(seekBar.removeCallbacks(FileAdapter.musicRunnable));
-                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                    seekBar.removeCallbacks(FileAdapter.musicRunnable);
                     if (currentMediaPlayer != null) {
                         editor.putInt("LastPlayingTime", seekBar.getProgress());
                         if (currentMediaPlayer.isPlaying()) {
@@ -433,7 +468,8 @@ public class FileActivity extends Activity{
                         }
                     }
                     editor.commit();
-                    FileAdapter.sendMessage("Stop");break;
+                    FileAdapter.sendMessage("Stop");
+                    break;
                 case TelephonyManager.CALL_STATE_OFFHOOK:
                     break;
                 default:
