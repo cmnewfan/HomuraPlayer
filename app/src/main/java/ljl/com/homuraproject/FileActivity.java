@@ -161,6 +161,7 @@ public class FileActivity extends Activity{
         if(mTimer != null){
             pauseFlag = true;
         }
+        //
     }
 
     /*private void beginLrcPlay() {
