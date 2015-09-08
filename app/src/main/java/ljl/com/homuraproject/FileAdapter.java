@@ -12,11 +12,9 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.mpatric.mp3agic.ID3v1;
-import com.mpatric.mp3agic.ID3v2;
-import com.mpatric.mp3agic.InvalidDataException;
-import com.mpatric.mp3agic.Mp3File;
-import com.mpatric.mp3agic.UnsupportedTagException;
+import org.jaudiotagger.audio.*;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.Tag;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -215,7 +213,15 @@ public class FileAdapter extends BaseAdapter {
 
     public static void sendCurrentLyric(){
         try {
-            Mp3File mp3File = new Mp3File(FileActivity.currentPlayingFile);
+            AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
+            Tag tag = currentAudioFile.getTag();
+            String title = tag.getFirst(FieldKey.TITLE);
+            if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
+                FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+            } else {
+                FileActivity.currentPlayingTitle = title;
+            }
+            /* Mp3File mp3File = new Mp3File(FileActivity.currentPlayingFile);
             if (mp3File.hasId3v1Tag()) {
                 ID3v1 id3v1Tag = mp3File.getId3v1Tag();
                 String test = id3v1Tag.getTitle();
@@ -229,20 +235,19 @@ public class FileAdapter extends BaseAdapter {
             else{
                 FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                         (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-            }
+            }*/
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (UnsupportedTagException e) {
+        } /*catch (UnsupportedTagException e) {
             e.printStackTrace();
         } catch (InvalidDataException e) {
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                     (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-        }
+        }*/
         catch (Exception ex){
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                     (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
         }
-
         sendMessage("SetMusicTitle");
         File currentLyric = new File(FileActivity.LyricFolder);
         File[] lyrics = currentLyric.listFiles();

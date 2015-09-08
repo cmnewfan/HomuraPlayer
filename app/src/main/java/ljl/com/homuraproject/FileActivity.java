@@ -164,15 +164,6 @@ public class FileActivity extends Activity{
         //
     }
 
-    /*private void beginLrcPlay() {
-        pauseFlag = false;
-        if(mTimer == null){
-            mTimer = new Timer();
-            mTask = new LrcTask();
-            mTimer.scheduleAtFixedRate(mTask, 0, 1000);
-        }
-    }*/
-
 
     private void initView() {
         this.main_backgroundImage = (ImageView) this.findViewById(R.id.main_backgroundImage);
