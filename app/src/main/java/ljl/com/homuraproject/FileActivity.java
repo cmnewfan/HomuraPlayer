@@ -115,6 +115,7 @@ public class FileActivity extends Activity{
                    lrcView.setLrc(rows);
                }
                else if(msg.obj.toString().equals("SetMusicTitle")){
+                   lrcView.setLrc(null);
                    NotificationCompat.Builder mBuilder =
                            (NotificationCompat.Builder) new NotificationCompat.Builder(getApplicationContext())
                                    .setSmallIcon(R.drawable.icon)
