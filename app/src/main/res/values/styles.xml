@@ -8,7 +8,7 @@
         <item name="android:windowActionBar">false</item>
     </style>
 
-    <style name="MyTheme" parent="android:Theme.Holo">
+    <style name="MyTheme" parent="Theme.AppCompat">
         <item name="android:windowNoTitle">false</item>
         <item name="android:windowActionBar">false</item>
     </style>

@@ -18,12 +18,12 @@ public class ErrorActivity extends Activity {
         showDialog("");
     }
     private void showDialog(String mess) {
-        if (mess.equals("ÎŞ·¨µÇÂ½µ½·şÎñÆ÷")) {
-            new AlertDialog.Builder(this).setTitle("×¢Òâ").setMessage("ÎŞ·¨µÇÂ¼µ½·şÎñÆ÷£¬ÇëÈ·ÈÏÊÇ·ñ´æÔÚ¿ÉÓÃÍøÂç»òÕßIPµØÖ·¼°¶Ë¿ÚÊÇ·ñÌîĞ´ÕıÈ·¡£")
-                    .setNegativeButton("È·¶¨", null).show();
+        if (mess.equals("æ— æ³•ç™»é™†åˆ°æœåŠ¡å™¨")) {
+            new AlertDialog.Builder(this).setTitle("æ³¨æ„").setMessage("æ— æ³•ç™»å½•åˆ°æœåŠ¡å™¨ï¼Œè¯·ç¡®è®¤æ˜¯å¦å­˜åœ¨å¯ç”¨ç½‘ç»œæˆ–è€…IPåœ°å€åŠç«¯å£æ˜¯å¦å¡«å†™æ­£ç¡®ã€‚")
+                    .setNegativeButton("ç¡®å®š", null).show();
         } else {
-            new AlertDialog.Builder(this).setTitle("·¢Éú´íÎó£¬ÊÇ·ñ·¢ËÍ´íÎó±¨¸æ").setMessage(mess)
-                    .setNegativeButton("È·¶¨", new DialogInterface.OnClickListener() {
+            new AlertDialog.Builder(this).setTitle("å‘ç”Ÿé”™è¯¯ï¼Œæ˜¯å¦å‘é€é”™è¯¯æŠ¥å‘Š").setMessage(mess)
+                    .setNegativeButton("ç¡®å®š", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             if (getIntent().getStringExtra("Error") != null) {
                                 Intent data = new Intent(Intent.ACTION_SENDTO);
@@ -35,7 +35,7 @@ public class ErrorActivity extends Activity {
                                 finish();
                             }
                         }
-                    }).setPositiveButton("È¡Ïû", new DialogInterface.OnClickListener() {
+                    }).setPositiveButton("å–æ¶ˆ", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                     finish();

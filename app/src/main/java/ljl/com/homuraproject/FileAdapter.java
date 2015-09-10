@@ -1,18 +1,23 @@
 package ljl.com.homuraproject;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Message;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import org.jaudiotagger.audio.*;
+import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 
@@ -141,7 +146,6 @@ public class FileAdapter extends BaseAdapter {
             drawable.setBounds(0, 0, drawable.getMinimumWidth(), drawable.getMinimumHeight());
             fileName.setCompoundDrawables(null, null, drawable, null);
         }*/
-
         fileName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -169,6 +173,19 @@ public class FileAdapter extends BaseAdapter {
                     Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
                     context.startActivity(Intent.createChooser(sendIntent, ""));
                 }
+            }
+        });
+        fileName.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                new AlertDialog.Builder(context).setTitle("加入播放列表").setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        FileActivity.currentPlayList.add
+                                (new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString()));
+                    }
+                }).setNegativeButton("取消", null).show();
+                return false;
             }
         });
         return view;
@@ -215,10 +232,20 @@ public class FileAdapter extends BaseAdapter {
         try {
             AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
             Tag tag = currentAudioFile.getTag();
-            String title = tag.getFirst(FieldKey.TITLE);
             if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
-                FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+                MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
+                String test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                MP3File f = (MP3File) AudioFileIO.read(FileActivity.currentPlayingFile);
+                Tag mTag = f.getTag();
+                if (test == null) {
+                    String title = mTag.getFirst(FieldKey.TITLE);
+                    FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+                } else {
+                    FileActivity.currentPlayingTitle = test;
+                }
             } else {
+                String title = tag.getFirst(FieldKey.TITLE);
                 FileActivity.currentPlayingTitle = title;
             }
             /* Mp3File mp3File = new Mp3File(FileActivity.currentPlayingFile);
@@ -254,11 +281,17 @@ public class FileAdapter extends BaseAdapter {
         currentLyric = null;
         for(int i=0;i<lyrics.length;i++){
             if(lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/")+1,lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle ))
-            {
+                    .contains(FileActivity.currentPlayingTitle )) {
                 currentLyric = lyrics[i];
                 break;
             }
+            /*else if(lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/")+1,lyrics[i].getName().lastIndexOf("."))
+                    .contains(FileActivity.currentPlayingTitle.substring(FileActivity.currentPlayingTitle.lastIndexOf(" "),
+                            FileActivity.currentPlayingTitle.length())))
+            {
+                currentLyric = lyrics[i];
+                break;
+            }*/
         }
         if(currentLyric != null){
             FileActivity.currentLyric = getLyric(currentLyric);
