@@ -17,7 +17,6 @@ import android.widget.TextView;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
-import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 
@@ -41,44 +40,40 @@ public class FileAdapter extends BaseAdapter {
     public static File[] files;
     public static Runnable musicRunnable;
 
-    public FileAdapter(Context context){
+    public FileAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         final Context tempContext = context;
         this.musicRunnable = new Runnable() {
             @Override
             public void run() {
-                if(FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax()-1) {
+                if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
                     try {
                         if (FileActivity.currentMediaPlayer.isPlaying()) {
                             FileActivity.seekBar.incrementProgressBy(1);
                             sendMessage("PlayLrc");
                         }
                         FileActivity.seekBar.postDelayed(this, 1000);
-                    }
-                    catch(IllegalStateException ex){
+                    } catch (IllegalStateException ex) {
                         ex.printStackTrace();
                     }
-                }
-                else{
-                    if(FileActivity.currentMediaPlayer!=null&&FileActivity.currentMediaPlayer.isPlaying()) {
+                } else {
+                    if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
                         FileActivity.currentMediaPlayer.stop();
                     }
-                    if(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size()-1) {
+                    if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
                         FileActivity.currentMediaPlayer = MediaPlayer.create(tempContext,
-                                Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile)+1)));
+                                Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)));
                         FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
                         FileActivity.seekBar.setProgress(0);
-                        FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile)+1);
-                        //while(FileActivity.seekBar.removeCallbacks(this));
-                        //FileActivity.seekBar.postDelayed(this, 1000);
+                        FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
                         sendCurrentLyric();
                         FileActivity.currentMediaPlayer.start();
                         sendMessage("Play");
                         FileActivity.seekBar.postDelayed(this, 1000);
                         notifyDataSetChanged();
-                    }
-                    else{
+                    } else {
+                        FileActivity.seekBar.postDelayed(this, 1000);
                         sendMessage("Stop");
                         sendMessage("SetTitle");
                     }
@@ -89,7 +84,7 @@ public class FileAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        if(files==null)
+        if (files == null)
             return 0;
         return files.length;
     }
@@ -112,30 +107,27 @@ public class FileAdapter extends BaseAdapter {
 
         final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
         fileName.setText(files[i].getName());
-        if(FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())){
+        if (FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
             Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
             rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
-            if(files[i].isDirectory()) {
+            if (files[i].isDirectory()) {
                 Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
                 leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
                 fileName.setCompoundDrawables(leftDrawable, null, rightDrawable, null);
+            } else {
+                fileName.setCompoundDrawables(null, null, rightDrawable, null);
             }
-            else{
-                fileName.setCompoundDrawables(null,null,rightDrawable,null);
-            }
-        }
-        else{
-            if(files[i].isDirectory()) {
+        } else {
+            if (files[i].isDirectory()) {
                 Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
                 leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
                 fileName.setCompoundDrawables(leftDrawable, null, null, null);
-            }
-            else{
-                fileName.setCompoundDrawables(null,null,null,null);
+            } else {
+                fileName.setCompoundDrawables(null, null, null, null);
             }
         }
 
-        if(files[i].isDirectory()) {
+        if (files[i].isDirectory()) {
             Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
@@ -197,22 +189,21 @@ public class FileAdapter extends BaseAdapter {
         FileActivity.currentPlayList.add(tempFile);
         Boolean flag = false;
         //File currentLyric = new File(tempFile.getAbsolutePath().replace(tempFile.getName().substring(tempFile.getName().lastIndexOf(".") + 1), "lrc"));
-        for(int i=0; i<files.length;i++) {
+        for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
                 if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".mp3") ||
                         tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
-                    if(!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())&&flag) {
+                    if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
                         FileActivity.currentPlayList.add(tFile);
-                    }
-                    else if(tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())){
+                    } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
                         flag = true;
                     }
                 }
             }
         }
-        if(FileActivity.currentMediaPlayer!=null && FileActivity.currentMediaPlayer.isPlaying()){
+        if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
             FileActivity.currentMediaPlayer.stop();
         }
         sendCurrentLyric();
@@ -228,21 +219,23 @@ public class FileAdapter extends BaseAdapter {
         FileActivity.handler.sendMessage(mes);
     }
 
-    public static void sendCurrentLyric(){
+    public static void sendCurrentLyric() {
         try {
             AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
             Tag tag = currentAudioFile.getTag();
+            StringBuffer sb = new StringBuffer();
+            String test = "";
             if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
-                MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
-                String test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                MP3File f = (MP3File) AudioFileIO.read(FileActivity.currentPlayingFile);
-                Tag mTag = f.getTag();
-                if (test == null) {
-                    String title = mTag.getFirst(FieldKey.TITLE);
-                    FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+                if (tag == null) {
+                    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                    mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
+                    if (mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
+                        test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                        FileActivity.currentPlayingTitle = test;
+                    }
                 } else {
-                    FileActivity.currentPlayingTitle = test;
+                    String title = tag.getFirst(FieldKey.TITLE);
+                    FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
                 }
             } else {
                 String title = tag.getFirst(FieldKey.TITLE);
@@ -270,18 +263,17 @@ public class FileAdapter extends BaseAdapter {
         } catch (InvalidDataException e) {
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                     (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-        }*/
-        catch (Exception ex){
+        }*/ catch (Exception ex) {
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
-                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
+                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/") + 1, FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
         }
         sendMessage("SetMusicTitle");
         File currentLyric = new File(FileActivity.LyricFolder);
         File[] lyrics = currentLyric.listFiles();
         currentLyric = null;
-        for(int i=0;i<lyrics.length;i++){
-            if(lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/")+1,lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle )) {
+        for (int i = 0; i < lyrics.length; i++) {
+            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
+                    .contains(FileActivity.currentPlayingTitle)) {
                 currentLyric = lyrics[i];
                 break;
             }
@@ -293,7 +285,7 @@ public class FileAdapter extends BaseAdapter {
                 break;
             }*/
         }
-        if(currentLyric != null){
+        if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
             sendMessage("UpdateLyric");
         }
@@ -302,11 +294,11 @@ public class FileAdapter extends BaseAdapter {
     private static String getLyric(File currentLyric) {
         try {
             InputStream is = new FileInputStream(currentLyric);
-            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is,"GBK"));
-            String line="";
-            String Result="";
-            while((line = bufReader.readLine()) != null){
-                if(line.trim().equals(""))
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is, "GBK"));
+            String line = "";
+            String Result = "";
+            while ((line = bufReader.readLine()) != null) {
+                if (line.trim().equals(""))
                     continue;
                 Result += line + "\r\n";
             }
