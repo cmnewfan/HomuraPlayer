@@ -38,6 +38,16 @@ public class MyApplication extends Application {
                 errorMessage.append(String.format("%s\t%s\t%s\t", stackTraceElements[i].getClassName(), stackTraceElements[i].getLineNumber(), stackTraceElements[i].getMethodName()));
                 errorMessage.append("\n");
             }
+            if (ex.getCause() != null) {
+                Throwable throwable = ex.getCause();
+                stackTraceElements = throwable.getStackTrace();
+                errorMessage.append(throwable.toString());
+                errorMessage.append("\n");
+                for (int i = 0; i < stackTraceElements.length; i++) {
+                    errorMessage.append(String.format("%s\t%s\t%s\t", stackTraceElements[i].getClassName(), stackTraceElements[i].getLineNumber(), stackTraceElements[i].getMethodName()));
+                    errorMessage.append("\n");
+                }
+            }
             Intent intent = new Intent ();
             intent.setAction("android.intent.action.BUG_REPORT");
             //intent.setClass(getApplicationContext(),ErrorActivity.class);

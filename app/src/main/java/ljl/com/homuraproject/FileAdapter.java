@@ -5,7 +5,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
@@ -29,6 +28,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+
 /**
  * Created by Administrator on 2015/7/31.
  */
@@ -49,7 +49,11 @@ public class FileAdapter extends BaseAdapter {
             public void run() {
                 if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
                     try {
-                        if (FileActivity.currentMediaPlayer.isPlaying()) {
+                        /*if (FileActivity.currentMediaPlayer.isPlaying()) {
+                            FileActivity.seekBar.incrementProgressBy(1);
+                            sendMessage("PlayLrc");
+                        }*/
+                        if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
                             FileActivity.seekBar.incrementProgressBy(1);
                             sendMessage("PlayLrc");
                         }
@@ -58,17 +62,33 @@ public class FileAdapter extends BaseAdapter {
                         ex.printStackTrace();
                     }
                 } else {
-                    if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
+                    /*if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
                         FileActivity.currentMediaPlayer.stop();
+                    }*/
+                    if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
+                        HomuraPlayer.getCurrentInstance().stop();
                     }
+
                     if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
-                        FileActivity.currentMediaPlayer = MediaPlayer.create(tempContext,
+                        //Test
+                        HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)), tempContext);
+                        FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
+                        sendCurrentLyric();
+                        player.play();
+                        //
+                        /*FileActivity.currentMediaPlayer = MediaPlayer.create(tempContext,
                                 Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)));
+                        FileActivity.currentMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mediaPlayer) {
+                                FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
+                            }
+                        });
                         FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
                         FileActivity.seekBar.setProgress(0);
                         FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
                         sendCurrentLyric();
-                        FileActivity.currentMediaPlayer.start();
+                        FileActivity.currentMediaPlayer.start();*/
                         sendMessage("Play");
                         FileActivity.seekBar.postDelayed(this, 1000);
                         notifyDataSetChanged();
@@ -80,6 +100,8 @@ public class FileAdapter extends BaseAdapter {
                 }
             }
         };
+        FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
+        FileActivity.seekBar.postDelayed(this.musicRunnable, 1000);
     }
 
     @Override
@@ -107,7 +129,7 @@ public class FileAdapter extends BaseAdapter {
 
         final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
         fileName.setText(files[i].getName());
-        if (FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
+        if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
             Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
             rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
             if (files[i].isDirectory()) {
@@ -153,11 +175,22 @@ public class FileAdapter extends BaseAdapter {
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac")) {
                     beforeMusicPlay(tempFile, files);
-                    FileActivity.currentMediaPlayer = MediaPlayer.create(context, Uri.fromFile(tempFile));
+                    //Test
+                    HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), context);
+                    sendMessage("Play");
+                    player.play();
+
+                    /*FileActivity.currentMediaPlayer = MediaPlayer.create(context, Uri.fromFile(tempFile));
+                    FileActivity.currentMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mediaPlayer) {
+                            FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
+                        }
+                    });
                     FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
                     FileActivity.seekBar.setProgress(0);
                     sendMessage("Play");
-                    FileActivity.currentMediaPlayer.start();
+                    FileActivity.currentMediaPlayer.start();*/
                     notifyDataSetChanged();
                 } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".jpg") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".JPG")) {
@@ -203,14 +236,13 @@ public class FileAdapter extends BaseAdapter {
                 }
             }
         }
+        //FileActivity.mListAdapter.notifyDataSetChanged();
+        //Test
+        /*
         if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
             FileActivity.currentMediaPlayer.stop();
-        }
-        sendCurrentLyric();
-        /*if(FileActivity.currentMediaPlayer.isPlaying()) {
-            while (FileActivity.seekBar.removeCallbacks(musicRunnable)) ;
-            FileActivity.seekBar.postDelayed(musicRunnable, 1000);
         }*/
+        sendCurrentLyric();
     }
 
     public static void sendMessage(String message) {
