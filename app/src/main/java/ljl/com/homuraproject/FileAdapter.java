@@ -90,18 +90,18 @@ public class FileAdapter extends BaseAdapter {
                         sendCurrentLyric();
                         FileActivity.currentMediaPlayer.start();*/
                         sendMessage("Play");
-                        FileActivity.seekBar.postDelayed(this, 1000);
+                        //FileActivity.seekBar.postDelayed(this, 1000);
                         notifyDataSetChanged();
                     } else {
-                        FileActivity.seekBar.postDelayed(this, 1000);
+                        //FileActivity.seekBar.postDelayed(this, 1000);
                         sendMessage("Stop");
                         sendMessage("SetTitle");
                     }
                 }
             }
         };
-        FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
-        FileActivity.seekBar.postDelayed(this.musicRunnable, 1000);
+        //FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
+        //FileActivity.seekBar.postDelayed(this.musicRunnable, 1000);
     }
 
     @Override

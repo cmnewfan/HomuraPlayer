@@ -37,11 +37,13 @@ public class HomuraPlayer {
     }
 
     public void start() {
+        FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
         FileActivity.seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
     }
 
     public void play() {
         if (this.myPlayer != null) {
+            this.start();
             this.myPlayer.start();
             this.state = "Playing";
         }

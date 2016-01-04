@@ -1,7 +1,5 @@
 package douzi.android.view;
 
-import java.util.List;
-
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -12,6 +10,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+
+import java.util.List;
 
 /**
  * LrcView can display LRC file and Seek it.
@@ -89,6 +89,9 @@ public class LrcView extends View implements ILrcView{
 		// 3, draw rows below highlight row.
 		
 		// 1 highlight row
+		if (mHignlightRow > mLrcRows.size()) {
+			return;
+		}
 		String highlightText = mLrcRows.get(mHignlightRow).content;
 		int highlightRowY = height / 2 - mLrcFontSize;
 		mPaint.setColor(mHignlightRowColor);

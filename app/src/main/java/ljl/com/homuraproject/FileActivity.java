@@ -275,9 +275,6 @@ public class FileActivity extends Activity {
             public void onClick(View view) {
                 playButton.setVisibility(View.GONE);
                 pauseButton.setVisibility(View.VISIBLE);
-                /*if (!currentMediaPlayer.isPlaying()) {
-                    currentMediaPlayer.start();
-                }*/
                 if (HomuraPlayer.getCurrentInstance() != null && (!HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing"))) {
                     HomuraPlayer.getCurrentInstance().play();
                 }
@@ -492,6 +489,10 @@ public class FileActivity extends Activity {
             seekBar.setProgress(LastPlayingTime);
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
             total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
+        } else {
+            ILrcBuilder builder = new DefaultLrcBuilder();
+            List<LrcRow> rows = builder.getLrcRows(currentLyric);
+            lrcView.setLrc(rows);
         }
     }
 
@@ -503,9 +504,6 @@ public class FileActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (!Screen_Off_Flag) {
-
-        }
     }
 
     @Override
