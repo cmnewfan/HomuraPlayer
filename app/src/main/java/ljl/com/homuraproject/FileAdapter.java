@@ -38,21 +38,15 @@ public class FileAdapter extends BaseAdapter {
     private LayoutInflater inflater;
     private File tempFile;
     public static File[] files;
-    public static Runnable musicRunnable;
-
     public FileAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         final Context tempContext = context;
-        this.musicRunnable = new Runnable() {
+        /*FileAdapter.musicRunnable = new Runnable() {
             @Override
             public void run() {
                 if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
                     try {
-                        /*if (FileActivity.currentMediaPlayer.isPlaying()) {
-                            FileActivity.seekBar.incrementProgressBy(1);
-                            sendMessage("PlayLrc");
-                        }*/
                         if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
                             FileActivity.seekBar.incrementProgressBy(1);
                             sendMessage("PlayLrc");
@@ -62,9 +56,6 @@ public class FileAdapter extends BaseAdapter {
                         ex.printStackTrace();
                     }
                 } else {
-                    /*if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
-                        FileActivity.currentMediaPlayer.stop();
-                    }*/
                     if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
                         HomuraPlayer.getCurrentInstance().stop();
                     }
@@ -75,33 +66,15 @@ public class FileAdapter extends BaseAdapter {
                         FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
                         sendCurrentLyric();
                         player.play();
-                        //
-                        /*FileActivity.currentMediaPlayer = MediaPlayer.create(tempContext,
-                                Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)));
-                        FileActivity.currentMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            @Override
-                            public void onCompletion(MediaPlayer mediaPlayer) {
-                                FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
-                            }
-                        });
-                        FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
-                        FileActivity.seekBar.setProgress(0);
-                        FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
-                        sendCurrentLyric();
-                        FileActivity.currentMediaPlayer.start();*/
                         sendMessage("Play");
-                        //FileActivity.seekBar.postDelayed(this, 1000);
                         notifyDataSetChanged();
                     } else {
-                        //FileActivity.seekBar.postDelayed(this, 1000);
                         sendMessage("Stop");
                         sendMessage("SetTitle");
                     }
                 }
             }
-        };
-        //FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
-        //FileActivity.seekBar.postDelayed(this.musicRunnable, 1000);
+        };*/
     }
 
     @Override
@@ -175,22 +148,9 @@ public class FileAdapter extends BaseAdapter {
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac")) {
                     beforeMusicPlay(tempFile, files);
-                    //Test
                     HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), context);
                     sendMessage("Play");
                     player.play();
-
-                    /*FileActivity.currentMediaPlayer = MediaPlayer.create(context, Uri.fromFile(tempFile));
-                    FileActivity.currentMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                        @Override
-                        public void onCompletion(MediaPlayer mediaPlayer) {
-                            FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
-                        }
-                    });
-                    FileActivity.seekBar.setMax(FileActivity.currentMediaPlayer.getDuration() / 1000);
-                    FileActivity.seekBar.setProgress(0);
-                    sendMessage("Play");
-                    FileActivity.currentMediaPlayer.start();*/
                     notifyDataSetChanged();
                 } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".jpg") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".JPG")) {

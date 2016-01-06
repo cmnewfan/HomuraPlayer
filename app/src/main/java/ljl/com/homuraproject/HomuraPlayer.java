@@ -37,8 +37,8 @@ public class HomuraPlayer {
     }
 
     public void start() {
-        FileActivity.seekBar.removeCallbacks(FileAdapter.musicRunnable);
-        FileActivity.seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
+        FileActivity.seekBar.removeCallbacks(MusicRunnable.mRunnable);
+        FileActivity.seekBar.postDelayed(MusicRunnable.mRunnable, 1000);
     }
 
     public void play() {

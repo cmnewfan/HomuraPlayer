@@ -100,7 +100,7 @@ public class FileActivity extends Activity {
                 if (currentPlayingFile != null) {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                seekBar.removeCallbacks(MusicRunnable.mRunnable);
                 if (HomuraPlayer.getCurrentInstance() != null) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
                     /*if (currentMediaPlayer.isPlaying()) {
@@ -440,7 +440,7 @@ public class FileActivity extends Activity {
                 if (currentPlayingFile != null) {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
-                seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                seekBar.removeCallbacks(MusicRunnable.mRunnable);
                 if (HomuraPlayer.getCurrentInstance() != null) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
                     /*if (currentMediaPlayer.isPlaying()) {
@@ -550,7 +550,7 @@ public class FileActivity extends Activity {
                     if (currentPlayingFile != null) {
                         editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                     }
-                    seekBar.removeCallbacks(FileAdapter.musicRunnable);
+                    seekBar.removeCallbacks(MusicRunnable.mRunnable);
                     if (HomuraPlayer.getCurrentInstance() != null) {
                         editor.putInt("LastPlayingTime", seekBar.getProgress());
                         /*if (currentMediaPlayer.isPlaying()) {
