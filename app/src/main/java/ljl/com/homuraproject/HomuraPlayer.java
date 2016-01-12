@@ -20,6 +20,17 @@ public class HomuraPlayer {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
                 FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
+                if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
+                    homura = HomuraPlayer.getInstance(Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)), MyApplication.getAppContext());
+                    FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
+                    FileAdapter.sendCurrentLyric();
+                    homura.play();
+                    FileAdapter.sendMessage("Play");
+                    FileActivity.fileAdapter.notifyDataSetChanged();
+                } else {
+                    FileAdapter.sendMessage("Stop");
+                    FileAdapter.sendMessage("SetTitle");
+                }
             }
         });
     }

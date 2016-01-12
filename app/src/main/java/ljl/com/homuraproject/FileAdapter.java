@@ -12,7 +12,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -42,39 +44,6 @@ public class FileAdapter extends BaseAdapter {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         final Context tempContext = context;
-        /*FileAdapter.musicRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
-                    try {
-                        if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                            FileActivity.seekBar.incrementProgressBy(1);
-                            sendMessage("PlayLrc");
-                        }
-                        FileActivity.seekBar.postDelayed(this, 1000);
-                    } catch (IllegalStateException ex) {
-                        ex.printStackTrace();
-                    }
-                } else {
-                    if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                        HomuraPlayer.getCurrentInstance().stop();
-                    }
-
-                    if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
-                        //Test
-                        HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)), tempContext);
-                        FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
-                        sendCurrentLyric();
-                        player.play();
-                        sendMessage("Play");
-                        notifyDataSetChanged();
-                    } else {
-                        sendMessage("Stop");
-                        sendMessage("SetTitle");
-                    }
-                }
-            }
-        };*/
     }
 
     @Override
@@ -163,13 +132,36 @@ public class FileAdapter extends BaseAdapter {
         fileName.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                new AlertDialog.Builder(context).setTitle("加入播放列表").setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                LayoutInflater lf = LayoutInflater.from(context);
+                View FileInfoView = lf.inflate(R.layout.file_info, null);
+                final EditText artistText = (EditText) FileInfoView.findViewById(R.id.ArtistText);
+                final EditText titleText = (EditText) FileInfoView.findViewById(R.id.TitleText);
+                artistText.setText(FileActivity.currentArtist);
+                titleText.setText(FileActivity.currentPlayingTitle);
+                new AlertDialog.Builder(context).setTitle("确认信息").setIcon(android.R.drawable.ic_dialog_info).setView(FileInfoView).setNegativeButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        FileActivity.currentPlayList.add
-                                (new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString()));
+                        Thread LyricThread = new Thread() {
+                            public void run() {
+                                String music_title = titleText.getText().toString();
+                                final String artist_name = artistText.getText().toString();
+                                LyricSearch ls = new LyricSearch(music_title, artist_name);
+                                ArrayList result = ls.fetchLyric();
+                                try {
+                                    boolean flag = FileIO.SaveLyric(result, music_title);
+                                    if (flag) {
+                                        sendMessage("1");
+                                    } else {
+                                        sendMessage("2");
+                                    }
+                                } catch (IOException e) {
+                                    Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT);
+                                }
+                            }
+                        };
+                        LyricThread.start();
                     }
-                }).setNegativeButton("取消", null).show();
+                }).show();
                 return false;
             }
         });
@@ -212,6 +204,8 @@ public class FileAdapter extends BaseAdapter {
     }
 
     public static void sendCurrentLyric() {
+        String artistName = "";
+        String songTitle = "";
         try {
             AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
             Tag tag = currentAudioFile.getTag();
@@ -222,11 +216,15 @@ public class FileAdapter extends BaseAdapter {
                     MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
                     mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
                     if (mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
+                        FileActivity.currentArtist = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
                         test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
                         FileActivity.currentPlayingTitle = test;
                     }
                 } else {
                     String title = tag.getFirst(FieldKey.TITLE);
+                    artistName = tag.getFirst(FieldKey.ARTIST);
+                    FileActivity.currentArtist = new String(artistName.getBytes("ISO-8859-1"), "GBK");
+                    songTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
                     FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
                 }
             } else {
@@ -280,7 +278,10 @@ public class FileAdapter extends BaseAdapter {
         if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
             sendMessage("UpdateLyric");
+        } else {
+            FileActivity.currentLyric = null;
         }
+
     }
 
     private static String getLyric(File currentLyric) {

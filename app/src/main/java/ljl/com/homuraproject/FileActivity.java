@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -17,22 +18,28 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.PagerTabStrip;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.NotificationCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,6 +69,7 @@ public class FileActivity extends Activity {
     public static String currentLyric;
     public static String currentPlayingTitle;
     public static String LastPlayingFile;
+    public static String currentArtist;
     boolean pauseFlag = false;
     private ListView listView;
     private TextView current_Time;
@@ -80,6 +88,8 @@ public class FileActivity extends Activity {
     private SharedPreferences sharedPreferences;
     private int LastPlayingTime;
     private boolean Screen_Off_Flag = false;
+    private static EditText artistText;
+    private static EditText titleText;
     private BroadcastReceiver myReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -147,6 +157,10 @@ public class FileActivity extends Activity {
                     //pauseLrcPlay();
                 } else if (msg.obj.toString().equals("SetTitle")) {
                     setTitle(currentDirectory);
+                } else if (msg.obj.toString().equals("1")) {
+                    Toast.makeText(MyApplication.getAppContext(), "转换成功", Toast.LENGTH_SHORT).show();
+                } else if (msg.obj.toString().equals("2")) {
+                    Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT).show();
                 } else if (msg.obj.toString().equals("UpdateLyric")) {
                     ILrcBuilder builder = new DefaultLrcBuilder();
                     List<LrcRow> rows = builder.getLrcRows(currentLyric);
@@ -490,10 +504,88 @@ public class FileActivity extends Activity {
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
             total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
         } else {
-            ILrcBuilder builder = new DefaultLrcBuilder();
-            List<LrcRow> rows = builder.getLrcRows(currentLyric);
-            lrcView.setLrc(rows);
+            if (currentLyric != null) {
+                ILrcBuilder builder = new DefaultLrcBuilder();
+                List<LrcRow> rows = builder.getLrcRows(currentLyric);
+                lrcView.setLrc(rows);
+            }
         }
+    }
+
+    public static String GetArtistText() {
+        if (artistText != null) {
+            return artistText.getText().toString();
+        } else
+            return "";
+    }
+
+    public static String GetTitleText() {
+        if (artistText != null) {
+            return titleText.getText().toString();
+        } else
+            return "";
+    }
+
+    @Override
+    public void onOptionsMenuClosed(Menu menu) {
+
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(Menu.NONE, 1, Menu.NONE, "搜索");
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case 1:
+                if (FileActivity.currentPlayingFile == null) {
+                    new AlertDialog.Builder(this).setTitle("当前不存在正在的文件").setIcon(android.R.drawable.ic_dialog_info).setNegativeButton("确定", null).show();
+                } else {
+                    LayoutInflater lf = getLayoutInflater().from(this);
+                    View FileInfoView = lf.inflate(R.layout.file_info, null);
+                    artistText = (EditText) FileInfoView.findViewById(R.id.ArtistText);
+                    titleText = (EditText) FileInfoView.findViewById(R.id.TitleText);
+                    artistText.setText(FileActivity.currentArtist);
+                    titleText.setText(FileActivity.currentPlayingTitle);
+                    new AlertDialog.Builder(this).setTitle("确认信息").setIcon(android.R.drawable.ic_dialog_info).setView(FileInfoView).setNegativeButton("确定", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            Thread LyricThread = new Thread() {
+                                public void run() {
+                                    String music_title = titleText.getText().toString();
+                                    final String artist_name = artistText.getText().toString();
+                                    LyricSearch ls = new LyricSearch(music_title, artist_name);
+                                    ArrayList result = ls.fetchLyric();
+                                    try {
+                                        boolean flag = FileIO.SaveLyric(result, music_title);
+                                        if (flag) {
+                                            Toast.makeText(MyApplication.getAppContext(), "转换成功", Toast.LENGTH_SHORT);
+                                        } else {
+                                            Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT);
+                                        }
+                                    } catch (IOException e) {
+                                        Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT);
+                                    }
+                                }
+                            };
+                            LyricThread.start();
+                        }
+                    }).show();
+                }
+                break;
+            default:
+                break;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -509,6 +601,10 @@ public class FileActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+    }
+
+    private void saveLyric(ArrayList result, String fileName) {
+
     }
 
     class LrcTask extends TimerTask {
@@ -570,6 +666,5 @@ public class FileActivity extends Activity {
             }
             super.onCallStateChanged(state, incomingNumber);
         }
-
     }
 }
