@@ -4,7 +4,7 @@ LrcJaeger
 
 jaudiotagger
 
-LrcView
+android-lrc-view
 
 Thanks to the authors above.
 
