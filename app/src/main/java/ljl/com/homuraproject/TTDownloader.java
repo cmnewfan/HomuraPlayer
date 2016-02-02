@@ -246,7 +246,6 @@ public class TTDownloader {
                 urlConnection.disconnect();
             }
         }
-
         return null;
     }
 
