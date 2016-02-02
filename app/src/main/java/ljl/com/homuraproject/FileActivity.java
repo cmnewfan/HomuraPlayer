@@ -70,6 +70,8 @@ public class FileActivity extends Activity {
     public static String currentPlayingTitle;
     public static String LastPlayingFile;
     public static String currentArtist;
+    private static EditText artistText;
+    private static EditText titleText;
     boolean pauseFlag = false;
     private ListView listView;
     private TextView current_Time;
@@ -88,8 +90,6 @@ public class FileActivity extends Activity {
     private SharedPreferences sharedPreferences;
     private int LastPlayingTime;
     private boolean Screen_Off_Flag = false;
-    private static EditText artistText;
-    private static EditText titleText;
     private BroadcastReceiver myReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -126,6 +126,20 @@ public class FileActivity extends Activity {
         }
     };
 
+    public static String GetArtistText() {
+        if (artistText != null) {
+            return artistText.getText().toString();
+        } else
+            return "";
+    }
+
+    public static String GetTitleText() {
+        if (artistText != null) {
+            return titleText.getText().toString();
+        } else
+            return "";
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // TODO Auto-generated method stub
@@ -158,9 +172,11 @@ public class FileActivity extends Activity {
                 } else if (msg.obj.toString().equals("SetTitle")) {
                     setTitle(currentDirectory);
                 } else if (msg.obj.toString().equals("1")) {
-                    Toast.makeText(MyApplication.getAppContext(), "转换成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MyApplication.getAppContext(), "未找到目标", Toast.LENGTH_SHORT).show();
                 } else if (msg.obj.toString().equals("2")) {
                     Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT).show();
+                } else if (msg.obj.toString().equals("3")) {
+                    Toast.makeText(MyApplication.getAppContext(), "转换成功", Toast.LENGTH_SHORT).show();
                 } else if (msg.obj.toString().equals("UpdateLyric")) {
                     ILrcBuilder builder = new DefaultLrcBuilder();
                     List<LrcRow> rows = builder.getLrcRows(currentLyric);
@@ -196,6 +212,27 @@ public class FileActivity extends Activity {
                     setTitle(currentPlayingTitle);
                 } else if (msg.obj.toString().equals("PlayLrc")) {
                     lrcView.seekLrcToTime(seekBar.getProgress() * 1000);
+                } else {
+                    Object[] array = (Object[]) msg.obj;
+                    final ArrayList<QueryResult> queryList = (ArrayList<QueryResult>) array[0];
+                    final String[] list = (String[]) array[1];
+                    new AlertDialog.Builder(FileActivity.this).setTitle("选择目标").setIcon(android.R.drawable.ic_dialog_info).setItems(list, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            final int item = i;
+                            Thread download_thread = new Thread() {
+                                public void run() {
+                                    boolean flag = TTDownloader.download(queryList.get(item), FileActivity.currentPlayingTitle);
+                                    if (flag) {
+                                        FileAdapter.sendMessage("3");
+                                    } else {
+                                        FileAdapter.sendMessage("2");
+                                    }
+                                }
+                            };
+                            download_thread.start();
+                        }
+                    }).show();
                 }
             }
         };
@@ -510,20 +547,6 @@ public class FileActivity extends Activity {
                 lrcView.setLrc(rows);
             }
         }
-    }
-
-    public static String GetArtistText() {
-        if (artistText != null) {
-            return artistText.getText().toString();
-        } else
-            return "";
-    }
-
-    public static String GetTitleText() {
-        if (artistText != null) {
-            return titleText.getText().toString();
-        } else
-            return "";
     }
 
     @Override

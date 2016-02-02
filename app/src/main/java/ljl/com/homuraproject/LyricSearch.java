@@ -18,13 +18,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 
 public class LyricSearch {
-    private URL url;
     public static final String DEFAULT_LOCAL = "GB2312";
     StringBuffer sb = new StringBuffer();
+    private URL url;
     private InputStreamReader in = null;
     private BufferedReader br = null;
     private int idnumber = 0;
@@ -34,12 +33,10 @@ public class LyricSearch {
         singerName = singerName.replace('?', '+');
         musicName = musicName.replace(' ', '+');
         singerName = singerName.replace(' ', '+');
-        musicName = "Yellow";
-        singerName = "Coldplay";
         int eventType = 0;
         try {
-            musicName = URLEncoder.encode(musicName, "UTF-8");
-            singerName = URLEncoder.encode(singerName, "UTF-8");
+            //musicName = URLEncoder.encode(musicName, "GB2312");
+            //singerName = URLEncoder.encode(singerName, "GB2312");
             musicName = musicName.replaceAll("%2B", "+");
             singerName = singerName.replaceAll("%2B", "+");
             String strUrl = "http://box.zhangmen.baidu.com/x?op=12&count=1&title="

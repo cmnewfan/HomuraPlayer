@@ -14,7 +14,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -35,15 +34,146 @@ import java.util.Arrays;
  * Created by Administrator on 2015/7/31.
  */
 public class FileAdapter extends BaseAdapter {
+    public static File[] files;
     private int count = 0;
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
-    public static File[] files;
     public FileAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         final Context tempContext = context;
+    }
+
+    public static void beforeMusicPlay(File tempFile, File[] files) {
+        FileActivity.currentPlayingFile = tempFile;
+        FileActivity.currentPlayList = new ArrayList<File>();
+        FileActivity.currentPlayList.add(tempFile);
+        Boolean flag = false;
+        //File currentLyric = new File(tempFile.getAbsolutePath().replace(tempFile.getName().substring(tempFile.getName().lastIndexOf(".") + 1), "lrc"));
+        for (int i = 0; i < files.length; i++) {
+            File tFile = files[i];
+            if (!tFile.isDirectory()) {
+                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".mp3") ||
+                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
+                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
+                    if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
+                        FileActivity.currentPlayList.add(tFile);
+                    } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
+                        flag = true;
+                    }
+                }
+            }
+        }
+        //FileActivity.mListAdapter.notifyDataSetChanged();
+        //Test
+        /*
+        if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
+            FileActivity.currentMediaPlayer.stop();
+        }*/
+        sendCurrentLyric();
+    }
+
+    public static void sendMessage(String message) {
+        Message mes = FileActivity.handler.obtainMessage();
+        mes.obj = message;
+        FileActivity.handler.sendMessage(mes);
+    }
+
+    private static void sendMessage(Object obj) {
+        Message mes = FileActivity.handler.obtainMessage();
+        mes.obj = obj;
+        FileActivity.handler.sendMessage(mes);
+    }
+
+    public static void sendCurrentLyric() {
+        String artistName = "";
+        String songTitle = "";
+        try {
+            AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
+            Tag tag = currentAudioFile.getTag();
+            StringBuffer sb = new StringBuffer();
+            String test = "";
+            if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
+                if (tag == null) {
+                    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                    mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
+                    if (mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
+                        FileActivity.currentArtist = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                        test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                        FileActivity.currentPlayingTitle = test;
+                    }
+                } else {
+                    String title = tag.getFirst(FieldKey.TITLE);
+                    artistName = tag.getFirst(FieldKey.ARTIST);
+                    FileActivity.currentArtist = new String(artistName.getBytes("ISO-8859-1"), "GBK");
+                    songTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+                    FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
+                }
+            } else {
+                String title = tag.getFirst(FieldKey.TITLE);
+                FileActivity.currentPlayingTitle = title;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception ex) {
+            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
+                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/") + 1, FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
+        }
+        sendMessage("SetMusicTitle");
+        File currentLyric = new File(FileActivity.LyricFolder);
+        File[] lyrics = currentLyric.listFiles();
+        currentLyric = null;
+        for (int i = 0; i < lyrics.length; i++) {
+            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
+                    .contains(FileActivity.currentPlayingTitle)) {
+                currentLyric = lyrics[i];
+                break;
+            }
+        }
+        if (currentLyric != null) {
+            FileActivity.currentLyric = getLyric(currentLyric);
+            sendMessage("UpdateLyric");
+        } else {
+            FileActivity.currentLyric = null;
+        }
+    }
+
+    public static void Update() {
+        File currentLyric = new File(FileActivity.LyricFolder);
+        File[] lyrics = currentLyric.listFiles();
+        currentLyric = null;
+        for (int i = 0; i < lyrics.length; i++) {
+            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
+                    .contains(FileActivity.currentPlayingTitle)) {
+                currentLyric = lyrics[i];
+                break;
+            }
+        }
+        if (currentLyric != null) {
+            FileActivity.currentLyric = getLyric(currentLyric);
+            sendMessage("UpdateLyric");
+        } else {
+            FileActivity.currentLyric = null;
+        }
+    }
+
+    private static String getLyric(File currentLyric) {
+        try {
+            InputStream is = new FileInputStream(currentLyric);
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is, "GBK"));
+            String line = "";
+            String Result = "";
+            while ((line = bufReader.readLine()) != null) {
+                if (line.trim().equals(""))
+                    continue;
+                Result += line + "\r\n";
+            }
+            return Result;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     @Override
@@ -144,18 +274,17 @@ public class FileAdapter extends BaseAdapter {
                         Thread LyricThread = new Thread() {
                             public void run() {
                                 String music_title = titleText.getText().toString();
-                                final String artist_name = artistText.getText().toString();
-                                LyricSearch ls = new LyricSearch(music_title, artist_name);
-                                ArrayList result = ls.fetchLyric();
-                                try {
-                                    boolean flag = FileIO.SaveLyric(result, music_title);
-                                    if (flag) {
-                                        sendMessage("1");
-                                    } else {
-                                        sendMessage("2");
+                                String artist_name = artistText.getText().toString();
+                                final ArrayList<QueryResult> queryList = TTDownloader.query(artist_name, music_title);
+                                if (queryList != null && queryList.size() != 0) {
+                                    final String[] list = new String[queryList.size()];
+                                    for (int i = 0; i < list.length; i++) {
+                                        list[i] = queryList.get(i).mTitle;
                                     }
-                                } catch (IOException e) {
-                                    Toast.makeText(MyApplication.getAppContext(), "转换出错", Toast.LENGTH_SHORT);
+                                    Object[] obj = new Object[]{queryList, list};
+                                    sendMessage(obj);
+                                } else {
+                                    sendMessage("1");
                                 }
                             }
                         };
@@ -166,139 +295,5 @@ public class FileAdapter extends BaseAdapter {
             }
         });
         return view;
-    }
-
-    public static void beforeMusicPlay(File tempFile, File[] files) {
-        FileActivity.currentPlayingFile = tempFile;
-        FileActivity.currentPlayList = new ArrayList<File>();
-        FileActivity.currentPlayList.add(tempFile);
-        Boolean flag = false;
-        //File currentLyric = new File(tempFile.getAbsolutePath().replace(tempFile.getName().substring(tempFile.getName().lastIndexOf(".") + 1), "lrc"));
-        for (int i = 0; i < files.length; i++) {
-            File tFile = files[i];
-            if (!tFile.isDirectory()) {
-                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".mp3") ||
-                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
-                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
-                    if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
-                        FileActivity.currentPlayList.add(tFile);
-                    } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
-                        flag = true;
-                    }
-                }
-            }
-        }
-        //FileActivity.mListAdapter.notifyDataSetChanged();
-        //Test
-        /*
-        if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
-            FileActivity.currentMediaPlayer.stop();
-        }*/
-        sendCurrentLyric();
-    }
-
-    public static void sendMessage(String message) {
-        Message mes = FileActivity.handler.obtainMessage();
-        mes.obj = message;
-        FileActivity.handler.sendMessage(mes);
-    }
-
-    public static void sendCurrentLyric() {
-        String artistName = "";
-        String songTitle = "";
-        try {
-            AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
-            Tag tag = currentAudioFile.getTag();
-            StringBuffer sb = new StringBuffer();
-            String test = "";
-            if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
-                if (tag == null) {
-                    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                    mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
-                    if (mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
-                        FileActivity.currentArtist = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                        test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                        FileActivity.currentPlayingTitle = test;
-                    }
-                } else {
-                    String title = tag.getFirst(FieldKey.TITLE);
-                    artistName = tag.getFirst(FieldKey.ARTIST);
-                    FileActivity.currentArtist = new String(artistName.getBytes("ISO-8859-1"), "GBK");
-                    songTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
-                    FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
-                }
-            } else {
-                String title = tag.getFirst(FieldKey.TITLE);
-                FileActivity.currentPlayingTitle = title;
-            }
-            /* Mp3File mp3File = new Mp3File(FileActivity.currentPlayingFile);
-            if (mp3File.hasId3v1Tag()) {
-                ID3v1 id3v1Tag = mp3File.getId3v1Tag();
-                String test = id3v1Tag.getTitle();
-                FileActivity.currentPlayingTitle = new String(test.getBytes("ISO-8859-1"),"GBK");
-            }
-            else if(mp3File.hasId3v2Tag()){
-                ID3v2 id3v2Tag = mp3File.getId3v2Tag();
-                String test = id3v2Tag.getTitle();
-                FileActivity.currentPlayingTitle = new String(test.getBytes("ISO-8859-1"),"GBK");
-            }
-            else{
-                FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
-                        (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-            }*/
-        } catch (IOException e) {
-            e.printStackTrace();
-        } /*catch (UnsupportedTagException e) {
-            e.printStackTrace();
-        } catch (InvalidDataException e) {
-            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
-                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/")+1,FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-        }*/ catch (Exception ex) {
-            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
-                    (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/") + 1, FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-        }
-        sendMessage("SetMusicTitle");
-        File currentLyric = new File(FileActivity.LyricFolder);
-        File[] lyrics = currentLyric.listFiles();
-        currentLyric = null;
-        for (int i = 0; i < lyrics.length; i++) {
-            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle)) {
-                currentLyric = lyrics[i];
-                break;
-            }
-            /*else if(lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/")+1,lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle.substring(FileActivity.currentPlayingTitle.lastIndexOf(" "),
-                            FileActivity.currentPlayingTitle.length())))
-            {
-                currentLyric = lyrics[i];
-                break;
-            }*/
-        }
-        if (currentLyric != null) {
-            FileActivity.currentLyric = getLyric(currentLyric);
-            sendMessage("UpdateLyric");
-        } else {
-            FileActivity.currentLyric = null;
-        }
-
-    }
-
-    private static String getLyric(File currentLyric) {
-        try {
-            InputStream is = new FileInputStream(currentLyric);
-            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is, "GBK"));
-            String line = "";
-            String Result = "";
-            while ((line = bufReader.readLine()) != null) {
-                if (line.trim().equals(""))
-                    continue;
-                Result += line + "\r\n";
-            }
-            return Result;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "";
     }
 }

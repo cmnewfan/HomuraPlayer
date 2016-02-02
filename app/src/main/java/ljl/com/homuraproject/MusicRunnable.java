@@ -9,10 +9,6 @@ public class MusicRunnable {
         public void run() {
             if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
                 try {
-                        /*if (FileActivity.currentMediaPlayer.isPlaying()) {
-                            FileActivity.seekBar.incrementProgressBy(1);
-                            sendMessage("PlayLrc");
-                        }*/
                     if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
                         FileActivity.seekBar.incrementProgressBy(1);
                         FileAdapter.sendMessage("PlayLrc");
