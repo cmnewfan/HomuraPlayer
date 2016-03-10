@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
@@ -20,11 +21,11 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,14 +36,13 @@ import java.util.Arrays;
  */
 public class FileAdapter extends BaseAdapter {
     public static File[] files;
-    private int count = 0;
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
+
     public FileAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
-        final Context tempContext = context;
     }
 
     public static void beforeMusicPlay(File tempFile, File[] files) {
@@ -50,7 +50,6 @@ public class FileAdapter extends BaseAdapter {
         FileActivity.currentPlayList = new ArrayList<File>();
         FileActivity.currentPlayList.add(tempFile);
         Boolean flag = false;
-        //File currentLyric = new File(tempFile.getAbsolutePath().replace(tempFile.getName().substring(tempFile.getName().lastIndexOf(".") + 1), "lrc"));
         for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
@@ -65,12 +64,6 @@ public class FileAdapter extends BaseAdapter {
                 }
             }
         }
-        //FileActivity.mListAdapter.notifyDataSetChanged();
-        //Test
-        /*
-        if (FileActivity.currentMediaPlayer != null && FileActivity.currentMediaPlayer.isPlaying()) {
-            FileActivity.currentMediaPlayer.stop();
-        }*/
         sendCurrentLyric();
     }
 
@@ -80,19 +73,25 @@ public class FileAdapter extends BaseAdapter {
         FileActivity.handler.sendMessage(mes);
     }
 
+    public static void sendMessage(String message, Bundle bundle) {
+        Message mes = FileActivity.handler.obtainMessage();
+        mes.obj = message;
+        mes.setData(bundle);
+        FileActivity.handler.sendMessage(mes);
+    }
+
     private static void sendMessage(Object obj) {
         Message mes = FileActivity.handler.obtainMessage();
         mes.obj = obj;
         FileActivity.handler.sendMessage(mes);
     }
 
+
     public static void sendCurrentLyric() {
         String artistName = "";
-        String songTitle = "";
         try {
             AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
             Tag tag = currentAudioFile.getTag();
-            StringBuffer sb = new StringBuffer();
             String test = "";
             if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
                 if (tag == null) {
@@ -107,7 +106,6 @@ public class FileAdapter extends BaseAdapter {
                     String title = tag.getFirst(FieldKey.TITLE);
                     artistName = tag.getFirst(FieldKey.ARTIST);
                     FileActivity.currentArtist = new String(artistName.getBytes("ISO-8859-1"), "GBK");
-                    songTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
                     FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
                 }
             } else {
@@ -160,8 +158,32 @@ public class FileAdapter extends BaseAdapter {
 
     private static String getLyric(File currentLyric) {
         try {
-            InputStream is = new FileInputStream(currentLyric);
-            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is, "GBK"));
+            BufferedInputStream is = new BufferedInputStream(new FileInputStream(currentLyric));
+            String codeType;
+            if (is.markSupported()) {
+                is.mark(4);
+                byte[] first3bytes = new byte[3];
+                is.read(first3bytes);
+                is.reset();
+                if (first3bytes[0] == (byte) 0xEF && first3bytes[1] == (byte) 0xBB
+                        && first3bytes[2] == (byte) 0xBF) {// utf-8
+                    codeType = "utf-8";
+                } else if (first3bytes[0] == (byte) 0xFF
+                        && first3bytes[1] == (byte) 0xFE) {
+                    codeType = "unicode";
+                } else if (first3bytes[0] == (byte) 0xFE
+                        && first3bytes[1] == (byte) 0xFF) {
+                    codeType = "utf-16be";
+                } else if (first3bytes[0] == (byte) 0xFF
+                        && first3bytes[1] == (byte) 0xFF) {
+                    codeType = "utf-16le";
+                } else {
+                    codeType = "GBK";
+                }
+            } else {
+                codeType = "GBK";
+            }
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(is, codeType));
             String line = "";
             String Result = "";
             while ((line = bufReader.readLine()) != null) {
@@ -198,7 +220,6 @@ public class FileAdapter extends BaseAdapter {
         if (view == null) {
             view = inflater.inflate(R.layout.listview_item, null);
         }
-
         final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
         fileName.setText(files[i].getName());
         if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
@@ -226,12 +247,6 @@ public class FileAdapter extends BaseAdapter {
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
         }
-        /*else if(files[i].getName().substring(files[i].getName().lastIndexOf(".")).equals(".mp3")||
-                files[i].getName().substring(files[i].getName().lastIndexOf(".")).equals(".m4a")){
-            Drawable drawable = context.getResources().getDrawable(R.drawable.abc_ic_commit_search_api_mtrl_alpha);
-            drawable.setBounds(0, 0, drawable.getMinimumWidth(), drawable.getMinimumHeight());
-            fileName.setCompoundDrawables(null, null, drawable, null);
-        }*/
         fileName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -247,9 +262,11 @@ public class FileAdapter extends BaseAdapter {
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac")) {
                     beforeMusicPlay(tempFile, files);
-                    HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), context);
-                    sendMessage("Play");
-                    player.play();
+                    Bundle bundle = new Bundle();
+                    bundle.putInt("op", 1);
+                    bundle.putInt("LastTime", 0);
+                    bundle.putString("file_path", tempFile.getAbsolutePath());
+                    sendMessage("Play", bundle);
                     notifyDataSetChanged();
                 } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".jpg") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".JPG")) {
@@ -267,7 +284,11 @@ public class FileAdapter extends BaseAdapter {
                 final EditText artistText = (EditText) FileInfoView.findViewById(R.id.ArtistText);
                 final EditText titleText = (EditText) FileInfoView.findViewById(R.id.TitleText);
                 artistText.setText(FileActivity.currentArtist);
-                titleText.setText(FileActivity.currentPlayingTitle);
+                if (FileActivity.currentPlayingTitle.contains("?")) {
+                    titleText.setText(FileActivity.currentPlayingFile.getName());
+                } else {
+                    titleText.setText(FileActivity.currentPlayingTitle);
+                }
                 new AlertDialog.Builder(context).setTitle("确认信息").setIcon(android.R.drawable.ic_dialog_info).setView(FileInfoView).setNegativeButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {

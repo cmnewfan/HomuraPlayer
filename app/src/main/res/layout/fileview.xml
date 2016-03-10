@@ -14,9 +14,9 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:layout_alignParentTop="true"
-            android:scaleType="fitCenter"
+            android:alpha="140"
             android:background="@drawable/bg_test"
-            android:alpha="140" />
+            android:scaleType="centerCrop" />
 
         <ListView
             android:id="@+id/file_listView"

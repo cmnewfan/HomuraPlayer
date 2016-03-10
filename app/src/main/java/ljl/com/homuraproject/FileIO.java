@@ -33,14 +33,10 @@ public class FileIO {
                 osw = new OutputStreamWriter(fos, "GBK");
                 bw = new BufferedWriter(osw);
             }
-            //fos = new FileOutputStream(new File(LyricFolder,fileName+".lrc"));
-            //fos = new FileOutputStream(android.os.Environment.getExternalStorageDirectory()+"/1.txt");
-            //fos = new FileOutputStream(android.os.Environment.getExternalStorageDirectory() + "/gps.txt",true);
         } catch (FileNotFoundException e) {
             return false;
         }
         bw.write(lyrics);
-        //fos.flush();
         bw.close();
         osw.close();
         fos.close();
@@ -64,22 +60,17 @@ public class FileIO {
                 osw = new OutputStreamWriter(fos, "GBK");
                 bw = new BufferedWriter(osw);
             }
-            //fos = new FileOutputStream(new File(LyricFolder,fileName+".lrc"));
-            //fos = new FileOutputStream(android.os.Environment.getExternalStorageDirectory()+"/1.txt");
-            //fos = new FileOutputStream(android.os.Environment.getExternalStorageDirectory() + "/gps.txt",true);
         } catch (FileNotFoundException e) {
             return false;
         }
         if (lyrics != null && bw != null) {
             for (int i = 0; i < lyrics.size(); i++) {
-                //fos.write(lyrics.get(i).toString().getBytes());
                 bw.write(lyrics.get(i).toString());
                 bw.newLine();
             }
         } else {
             return false;
         }
-        //fos.flush();
         bw.close();
         osw.close();
         fos.close();

@@ -8,8 +8,8 @@ import android.net.Uri;
  * Created by hzfd on 2015/12/30.
  */
 public class HomuraPlayer {
-    private MediaPlayer myPlayer;
     private static HomuraPlayer homura = null;
+    private MediaPlayer myPlayer;
     private String state = "None";
 
     private HomuraPlayer(Uri uri, Context context) {
@@ -35,7 +35,7 @@ public class HomuraPlayer {
         });
     }
 
-    public static HomuraPlayer getInstance(Uri uri, Context context) {
+    private static HomuraPlayer getInstance(Uri uri, Context context) {
         if (homura != null && homura.myPlayer.isPlaying()) {
             homura.myPlayer.stop();
         }

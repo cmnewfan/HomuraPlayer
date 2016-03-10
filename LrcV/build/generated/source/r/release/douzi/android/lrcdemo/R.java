@@ -30,12 +30,12 @@ public final class R {
         public static int activity_main=0x7f070000;
     }
     public static final class string {
-        public static int app_name=0x7f050000;
-        public static int hello_world=0x7f050001;
-        public static int menu_settings=0x7f050002;
-        public static int title_activity_main=0x7f050003;
+        public static int app_name=0x7f060000;
+        public static int hello_world=0x7f060001;
+        public static int menu_settings=0x7f060002;
+        public static int title_activity_main=0x7f060003;
     }
     public static final class style {
-        public static int AppTheme=0x7f060000;
+        public static int AppTheme=0x7f050000;
     }
 }

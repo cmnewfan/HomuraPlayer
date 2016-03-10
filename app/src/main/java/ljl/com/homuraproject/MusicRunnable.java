@@ -9,7 +9,7 @@ public class MusicRunnable {
         public void run() {
             if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
                 try {
-                    if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
+                    if (PlayService.exist() && PlayService.getPlayerState().equals("Playing")) {
                         FileActivity.seekBar.incrementProgressBy(1);
                         FileAdapter.sendMessage("PlayLrc");
                     }
@@ -20,6 +20,4 @@ public class MusicRunnable {
             }
         }
     };
-    ;
-
 }

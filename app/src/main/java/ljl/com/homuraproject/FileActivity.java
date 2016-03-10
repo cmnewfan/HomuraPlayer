@@ -1,27 +1,23 @@
 package ljl.com.homuraproject;
 
 import android.app.Activity;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.TaskStackBuilder;
+import android.os.PowerManager;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.PagerTabStrip;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.NotificationCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -43,8 +39,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import douzi.android.view.DefaultLrcBuilder;
 import douzi.android.view.ILrcBuilder;
@@ -55,7 +49,7 @@ import douzi.android.view.LrcView;
  * Created by Administrator on 2015/7/31.
  */
 public class FileActivity extends Activity {
-    public final static String LyricFolder = "/storage/sdcard1/Lyrics";
+    public final static String LyricFolder = "/storage/emulated/0/Lyrics";
     private static final int mId = 1;
     public static MusicListAdapter mListAdapter;
     public static Handler handler;
@@ -63,7 +57,6 @@ public class FileActivity extends Activity {
     public static FileAdapter fileAdapter;
     public static File currentFile;
     public static String currentDirectory;
-    public static MediaPlayer currentMediaPlayer;
     public static ArrayList<File> currentPlayList;
     public static File currentPlayingFile;
     public static String currentLyric;
@@ -72,7 +65,6 @@ public class FileActivity extends Activity {
     public static String currentArtist;
     private static EditText artistText;
     private static EditText titleText;
-    boolean pauseFlag = false;
     private ListView listView;
     private TextView current_Time;
     private ImageButton playButton;
@@ -81,43 +73,27 @@ public class FileActivity extends Activity {
     private ImageButton nextButton;
     private TextView total_Time;
     private LrcView lrcView;
-    private Timer mTimer;
     private TextView myTitle;
     private ImageView main_backgroundImage;
-    private ListView mListView;
     private ViewPager viewPager;
     private PagerTabStrip pagerTabStrip;
     private SharedPreferences sharedPreferences;
     private int LastPlayingTime;
-    private boolean Screen_Off_Flag = false;
+    private PowerManager.WakeLock wakeLock;
     private BroadcastReceiver myReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             // TODO Auto-generated method stub
-            if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {//
-                //SharedPreferences.Editor editor = sharedPreferences.edit();
-                //editor.putInt("LastPlayingTime", seekBar.getProgress());
-                //editor.commit();
-            }
-            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {//
-                Screen_Off_Flag = true;
-            }
-            if (Intent.ACTION_USER_PRESENT.equals(intent.getAction())) {//
-
-            }
             if (intent.getAction().equals("android.intent.action.PHONE_STATE")) {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
                 if (currentPlayingFile != null) {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
                 seekBar.removeCallbacks(MusicRunnable.mRunnable);
-                if (HomuraPlayer.getCurrentInstance() != null) {
+                if (PlayService.exist()) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
-                    /*if (currentMediaPlayer.isPlaying()) {
-                        currentMediaPlayer.pause();
-                    }*/
-                    if (HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                        HomuraPlayer.getCurrentInstance().pause();
+                    if (PlayService.getPlayerState().equals("Playing")) {
+                        PlayService.pause();
                     }
                 }
                 editor.commit();
@@ -144,12 +120,30 @@ public class FileActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
+        //Get screen width and height
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        float density = getResources().getDisplayMetrics().density;
+        float dpHeight = dm.heightPixels / density;
+        float dpWidth = dm.widthPixels / density;
+        //
+        Intent intent = new Intent("com.service.PlayService");
+        intent.setPackage(getPackageName());
+        startService(intent);
         requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         setContentView(R.layout.file_explorer);
         getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title_bar);
         getWindow().setSoftInputMode(
                 WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
         );
+        //Inten
+        Intent x = getIntent();
+        int sc = x.getIntExtra("Command", 100);
+        //WakeLock
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, FileActivity.class.getName());
+        wakeLock.acquire();
+
         TelephonyManager manager = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
         manager.listen(new MyPhoneStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
         registerReceiver(myReceiver, new IntentFilter("android.intent.action.PHONE_STATE"));
@@ -161,16 +155,27 @@ public class FileActivity extends Activity {
                 if (msg.obj.toString().equals("Play")) {
                     pauseButton.setVisibility(View.VISIBLE);
                     playButton.setVisibility(View.GONE);
+                    PlayService.ControlNotificationView(R.id.notification_pause, View.VISIBLE);
+                    PlayService.ControlNotificationView(R.id.notification_play, View.GONE);
                     total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
-                    //beginLrcPlay();
+                    Intent intent = new Intent("com.service.PlayService");
+                    intent.putExtras(msg.getData());
+                    intent.setPackage(getPackageName());
+                    startService(intent);
+                } else if (msg.obj.toString().equals("Play2")) {
+                    pauseButton.setVisibility(View.VISIBLE);
+                    playButton.setVisibility(View.GONE);
+                    total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
                 } else if (msg.obj.toString().equals("Stop")) {
                     playButton.setVisibility(View.VISIBLE);
                     pauseButton.setVisibility(View.GONE);
-                    //stopLrcPlay();
-                } else if (msg.obj.toString().equals("Pause")) {
-                    //pauseLrcPlay();
                 } else if (msg.obj.toString().equals("SetTitle")) {
                     setTitle(currentDirectory);
+                } else if (msg.obj.toString().equals("Pause")) {
+                    pauseButton.setVisibility(View.GONE);
+                    playButton.setVisibility(View.VISIBLE);
+                    PlayService.ControlNotificationView(R.id.notification_play, View.VISIBLE);
+                    PlayService.ControlNotificationView(R.id.notification_pause, View.GONE);
                 } else if (msg.obj.toString().equals("1")) {
                     Toast.makeText(MyApplication.getAppContext(), "未找到目标", Toast.LENGTH_SHORT).show();
                 } else if (msg.obj.toString().equals("2")) {
@@ -183,7 +188,9 @@ public class FileActivity extends Activity {
                     lrcView.setLrc(rows);
                 } else if (msg.obj.toString().equals("SetMusicTitle")) {
                     lrcView.setLrc(null);
-                    NotificationCompat.Builder mBuilder =
+                    setTitle(currentPlayingTitle);
+                    PlayService.UpdateNotification(currentPlayingTitle, currentArtist);
+                    /*NotificationCompat.Builder mBuilder =
                             (NotificationCompat.Builder) new NotificationCompat.Builder(getApplicationContext())
                                     .setSmallIcon(R.drawable.icon)
                                     .setContentTitle("Title:")
@@ -208,8 +215,8 @@ public class FileActivity extends Activity {
                     NotificationManager mNotificationManager =
                             (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 // mId allows you to update the notification later on.
-                    mNotificationManager.notify(mId, mBuilder.build());
-                    setTitle(currentPlayingTitle);
+                    mNotificationManager.notify(mId, mBuilder.build());*/
+
                 } else if (msg.obj.toString().equals("PlayLrc")) {
                     lrcView.seekLrcToTime(seekBar.getProgress() * 1000);
                 } else {
@@ -236,20 +243,6 @@ public class FileActivity extends Activity {
                 }
             }
         };
-    }
-
-    private void stopLrcPlay() {
-        if (mTimer != null) {
-            mTimer.cancel();
-            mTimer = null;
-        }
-    }
-
-    private void pauseLrcPlay() {
-        if (mTimer != null) {
-            pauseFlag = true;
-        }
-        //
     }
 
     private void InitViewPagerAdapter() {
@@ -319,15 +312,14 @@ public class FileActivity extends Activity {
         InitSeekBar();
         InitViewPagerAdapter();
         InitPagerTabStrip();
-        //this.lrcView = (LrcView) this.findViewById(R.id.lrcView);
         this.playButton = (ImageButton) this.findViewById(R.id.btn_play);
         this.playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 playButton.setVisibility(View.GONE);
                 pauseButton.setVisibility(View.VISIBLE);
-                if (HomuraPlayer.getCurrentInstance() != null && (!HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing"))) {
-                    HomuraPlayer.getCurrentInstance().play();
+                if (!PlayService.getPlayerState().equals("Playing")) {
+                    PlayService.play();
                 }
                 Message mes = handler.obtainMessage();
                 mes.obj = "Play";
@@ -338,13 +330,8 @@ public class FileActivity extends Activity {
         this.pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pauseButton.setVisibility(View.GONE);
-                playButton.setVisibility(View.VISIBLE);
-                /*if (currentMediaPlayer.isPlaying()) {
-                    currentMediaPlayer.pause();
-                }*/
-                if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                    HomuraPlayer.getCurrentInstance().pause();
+                if (PlayService.getPlayerState().equals("Playing")) {
+                    PlayService.pause();
                 }
                 Message mes = handler.obtainMessage();
                 mes.obj = "Pause";
@@ -355,32 +342,25 @@ public class FileActivity extends Activity {
         this.prevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*if (currentMediaPlayer != null && currentMediaPlayer.isPlaying()) {
-                    currentMediaPlayer.stop();
-                }*/
-
-                if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                    HomuraPlayer.getCurrentInstance().stop();
+                if (PlayService.getPlayerState().equals("Playing")) {
+                    PlayService.stop();
                 }
 
                 if (currentPlayList.indexOf(currentPlayingFile) > 0) {
-                    HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1)), FileActivity.this);
-                    /*currentMediaPlayer = MediaPlayer.create(FileActivity.this,
-                            Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1)));
-                    seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
-                    seekBar.setProgress(0);*/
+                    //HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1)), FileActivity.this);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1);
-                    /*if(currentMediaPlayer.isPlaying()) {
-                        while (seekBar.removeCallbacks(FileAdapter.musicRunnable));
-                        seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
-                    }*/
-                    //seekBar.removeCallbacks(FileAdapter.musicRunnable);
                     fileAdapter.sendCurrentLyric();
-                    Message mes = handler.obtainMessage();
-                    mes.obj = "Play";
-                    handler.sendMessage(mes);
-                    player.play();
-                    //currentMediaPlayer.start();
+
+                    //player.play();
+
+                    Intent intent = new Intent("com.service.PlayService");
+                    Bundle bundle = new Bundle();
+                    bundle.putInt("op", 1);
+                    bundle.putInt("LastTime", 0);
+                    bundle.putString("file_path", currentPlayingFile.getAbsolutePath());
+                    intent.putExtras(bundle);
+                    intent.setPackage(getPackageName());
+                    startService(intent);
                     fileAdapter.notifyDataSetChanged();
                 }
             }
@@ -389,47 +369,32 @@ public class FileActivity extends Activity {
         this.nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*if (currentMediaPlayer != null && currentMediaPlayer.isPlaying()) {
-                    currentMediaPlayer.stop();
-                }*/
-                if (HomuraPlayer.getCurrentInstance() != null && HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                    HomuraPlayer.getCurrentInstance().stop();
+                if (PlayService.getPlayerState().equals("Playing")) {
+                    PlayService.stop();
                 }
 
                 if (currentPlayList.indexOf(currentPlayingFile) < currentPlayList.size() - 1) {
-                    HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1)), FileActivity.this);
-                    /*currentMediaPlayer = MediaPlayer.create(FileActivity.this,
-                            Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1)));
-                    seekBar.setMax(currentMediaPlayer.getDuration() / 1000);
-                    seekBar.setProgress(0);*/
+                    //HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1)), FileActivity.this);
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1);
-                    /*if(currentMediaPlayer.isPlaying()) {
-                        while (seekBar.removeCallbacks(FileAdapter.musicRunnable)) ;
-                        seekBar.postDelayed(FileAdapter.musicRunnable, 1000);
-                    }*/
                     fileAdapter.sendCurrentLyric();
-                    Message mes = handler.obtainMessage();
-                    mes.obj = "Play";
-                    handler.sendMessage(mes);
-                    player.play();
-                    //currentMediaPlayer.start();
+                    Intent intent = new Intent("com.service.PlayService");
+                    Bundle bundle = new Bundle();
+                    bundle.putInt("op", 1);
+                    bundle.putInt("LastTime", 0);
+                    bundle.putString("file_path", currentPlayingFile.getAbsolutePath());
+                    intent.putExtras(bundle);
+                    intent.setPackage(getPackageName());
+                    startService(intent);
                     fileAdapter.notifyDataSetChanged();
                 }
             }
         });
         this.total_Time = (TextView) this.findViewById(R.id.totalTime_tv);
         this.current_Time = (TextView) this.findViewById(R.id.currentTime_tv);
-        /*this.listView = (ListView) this.findViewById(R.id.file_listView);
-        fileAdapter = new FileAdapter(FileActivity.this);
-        this.listView.setAdapter(fileAdapter);*/
-        //this.mListView = (ListView) this.findViewById(R.id.MusicListView);
-        //mListAdapter = new MusicListAdapter(FileActivity.this);
-        //this.mListView.setAdapter(mListAdapter);
         if (currentPlayingFile == null) {
-            File path = new File(File.separator + "storage");
+            File path = new File(File.separator + "storage/emulated/0");
             FileAdapter.files = path.listFiles();
             Arrays.sort(FileAdapter.files);
-
             currentFile = path;
             currentDirectory = path.getAbsolutePath();
             this.setTitle(currentDirectory);
@@ -454,7 +419,7 @@ public class FileActivity extends Activity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                if (HomuraPlayer.getCurrentInstance() == null || currentPlayingFile == null || currentPlayList == null) {
+                if (currentPlayingFile == null || currentPlayList == null) {
                     seekBar.setEnabled(false);
                 } else {
                     seekBar.setEnabled(true);
@@ -463,11 +428,8 @@ public class FileActivity extends Activity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                /*if (currentMediaPlayer.isPlaying()) {
-                    currentMediaPlayer.seekTo(seekBar.getProgress() * 1000);
-                }*/
-                if (HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                    HomuraPlayer.getCurrentInstance().seekTo(seekBar.getProgress() * 1000);
+                if (PlayService.getPlayerState().equals("Playing")) {
+                    PlayService.seekTo(seekBar.getProgress() * 1000);
                 }
             }
         });
@@ -492,16 +454,18 @@ public class FileActivity extends Activity {
                     editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                 }
                 seekBar.removeCallbacks(MusicRunnable.mRunnable);
-                if (HomuraPlayer.getCurrentInstance() != null) {
+                if (PlayService.exist()) {
                     editor.putInt("LastPlayingTime", seekBar.getProgress());
-                    /*if (currentMediaPlayer.isPlaying()) {
-                        currentMediaPlayer.stop();
+                    if (PlayService.getPlayerState().equals("Playing")) {
+                        PlayService.stop();
                     }
-                    currentMediaPlayer.release();*/
-                    if (HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                        HomuraPlayer.getCurrentInstance().stop();
-                    }
-                    HomuraPlayer.getCurrentInstance().release();
+                    PlayService.release();
+                }
+
+                //release wake lock
+                if (wakeLock != null && wakeLock.isHeld()) {
+                    wakeLock.release();
+                    wakeLock = null;
                 }
 
                 editor.commit();
@@ -526,6 +490,10 @@ public class FileActivity extends Activity {
         super.onResume();
         initView();
         if (currentPlayingFile == null) {
+            if (PlayService.exist()) {
+                LastPlayingFile = PlayService.getLastFile();
+                LastPlayingTime = PlayService.getLastProgress();
+            }
             LastPlayingFile = sharedPreferences.getString("LastPlayingFile", "");
             LastPlayingTime = sharedPreferences.getInt("LastPlayingTime", 0);
             if (LastPlayingFile.equals("")) {
@@ -534,17 +502,39 @@ public class FileActivity extends Activity {
             currentPlayingFile = new File(LastPlayingFile);
             FileAdapter.beforeMusicPlay(currentPlayingFile, currentPlayingFile.getParentFile().listFiles());
             //Test
-            HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayingFile), this);
-            player.seekTo(LastPlayingTime * 1000);
+            //HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(currentPlayingFile), this);
+            //player.seekTo(LastPlayingTime * 1000);
+
+            Intent intent = new Intent("com.service.PlayService");
+            Bundle bundle = new Bundle();
+            intent.setPackage(getPackageName());
+            bundle.putInt("op", 1);
+            bundle.putInt("LastTime", LastPlayingTime * 1000);
+            bundle.putString("file_path", currentPlayingFile.getAbsolutePath());
+            intent.putExtras(bundle);
+            startService(intent);
             //
-            seekBar.setProgress(LastPlayingTime);
+            pauseButton.setVisibility(View.VISIBLE);
+            playButton.setVisibility(View.GONE);
+
+            //seekBar.setProgress(LastPlayingTime);
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
-            total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
+            //total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
         } else {
             if (currentLyric != null) {
                 ILrcBuilder builder = new DefaultLrcBuilder();
                 List<LrcRow> rows = builder.getLrcRows(currentLyric);
                 lrcView.setLrc(rows);
+            }
+            seekBar.setProgress(PlayService.GetProgress());
+            current_Time.setText(String.format("%02d", PlayService.GetProgress() / 60) + ":" + String.format("%02d", PlayService.GetProgress() % 60));
+            total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
+            if (PlayService.getPlayerState().equals("Playing")) {
+                pauseButton.setVisibility(View.VISIBLE);
+                playButton.setVisibility(View.GONE);
+            } else if (PlayService.getPlayerState().equals("Pause")) {
+                pauseButton.setVisibility(View.GONE);
+                playButton.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -626,37 +616,6 @@ public class FileActivity extends Activity {
         super.onStart();
     }
 
-    private void saveLyric(ArrayList result, String fileName) {
-
-    }
-
-    class LrcTask extends TimerTask {
-        long beginTime = -1;
-        long pausedBeginTime = 0;
-        long pausedTime = 0;
-
-        @Override
-        public void run() {
-            if (beginTime == -1) {
-                beginTime = System.currentTimeMillis();
-            }
-            if (pauseFlag && pausedBeginTime == 0) {
-                pausedBeginTime = System.currentTimeMillis();
-            } else if (pauseFlag && pausedBeginTime != 0) {
-                pausedTime += System.currentTimeMillis() - pausedBeginTime;
-            } else {
-                pausedBeginTime = 0;
-                pausedTime = 0;
-            }
-            final long timePassed = System.currentTimeMillis() - beginTime - pausedTime;
-            FileActivity.this.runOnUiThread(new Runnable() {
-                public void run() {
-                    lrcView.seekLrcToTime(timePassed);
-                }
-            });
-        }
-    }
-
     class MyPhoneStateListener extends PhoneStateListener {
 
         @Override
@@ -670,13 +629,10 @@ public class FileActivity extends Activity {
                         editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
                     }
                     seekBar.removeCallbacks(MusicRunnable.mRunnable);
-                    if (HomuraPlayer.getCurrentInstance() != null) {
+                    if (PlayService.exist()) {
                         editor.putInt("LastPlayingTime", seekBar.getProgress());
-                        /*if (currentMediaPlayer.isPlaying()) {
-                            currentMediaPlayer.pause();
-                        }*/
-                        if (HomuraPlayer.getCurrentInstance().getPlayerState().equals("Playing")) {
-                            HomuraPlayer.getCurrentInstance().pause();
+                        if (PlayService.getPlayerState().equals("Playing")) {
+                            PlayService.pause();
                         }
                     }
                     editor.commit();

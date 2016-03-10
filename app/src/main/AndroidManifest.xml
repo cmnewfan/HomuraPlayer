@@ -6,13 +6,14 @@
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"></uses-permission>
     <uses-permission android:name="android.permission.MOUNT_FORMAT_FILESYSTEMS"></uses-permission>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
+    <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
 
     <application
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
-        android:name=".MyApplication"
         >
         <activity
             android:name=".MainActivity"
@@ -20,25 +21,38 @@
             android:theme="@style/AppSplash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity android:name=".FileActivity"
-            android:label="Homura Project"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
+            android:label="Homura Project"
+            android:launchMode="singleTask"
             android:theme="@style/MyTheme"
             android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".ErrorActivity"
-            android:label="BUG REPORT"
-            android:configChanges="orientation|keyboardHidden|screenSize">
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="BUG REPORT">
             <intent-filter>
                 <action android:name="android.intent.action.BUG_REPORT" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".PlayService"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.service.PlayService" />
+            </intent-filter>
+        </service>
+        <receiver android:name=".PlayServiceBroadcastReceiver">
+            <intent-filter android:priority="1000">    <!-- 设置最高优先级 -->
+                <action android:name="com.Broadcast.PlayServiceBroadcast" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

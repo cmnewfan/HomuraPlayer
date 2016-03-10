@@ -1,7 +1,6 @@
 package ljl.com.homuraproject;
 
 import android.content.Context;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +16,11 @@ public class MusicListAdapter extends BaseAdapter {
     private final Context con;
     private LayoutInflater inflater;
 
+
+    public MusicListAdapter(Context context) {
+        this.con = context;
+        this.inflater = LayoutInflater.from(context);
+    }
 
     @Override
     public int getCount() {
@@ -53,18 +57,13 @@ public class MusicListAdapter extends BaseAdapter {
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac")) {
                     FileAdapter.beforeMusicPlay(tempFile, files);
-                    HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), con);
+                    //HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), con);
                     FileAdapter.sendMessage("Play");
-                    player.play();
+                    //player.play();
                     notifyDataSetChanged();
                 }
             }
         });
         return view;
-    }
-
-    public MusicListAdapter(Context context) {
-        this.con = context;
-        this.inflater = LayoutInflater.from(context);
     }
 }
