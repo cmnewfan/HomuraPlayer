@@ -20,7 +20,6 @@ public class MainActivity extends Activity {
             setContentView(R.layout.activity_main);
             final Intent intent = new Intent();
             intent.setClass(this, FileActivity.class);
-
             Thread thread = new Thread() {
                 @Override
                 public void run() {

@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -40,23 +41,28 @@ public class LrcView extends View implements ILrcView{
 	private int mMinSeekLineTextSize = 13;
 	private int mMaxSeekLineTextSize = 18;
 	private int mLrcFontSize = 23; 	// font size of lrc 
-	private int mMinLrcFontSize = 15;
-	private int mMaxLrcFontSize = 35;
+	private int mMinLrcFontSize = 20;
+	private int mMaxLrcFontSize = 45;
 	private int mPaddingY = 10;		// padding of each row
 	private int mSeekLinePaddingX = 0; // Seek line padding x
 	private int mDisplayMode = DISPLAY_MODE_NORMAL;
+	private float actionDownX;
 	private LrcViewListener mLrcViewListener;
 	
 	private String mLoadingLrcTip = "Downloading lrc...";
 	
 	private Paint mPaint;
-	
+	private float mLastMotionY;
+	private PointF mPointerOneLastMotion = new PointF();
+	private PointF mPointerTwoLastMotion = new PointF();
+	private boolean mIsFirstMove = false; // whether is first move , some events can't not detected in touch down,
+
 	public LrcView(Context context,AttributeSet attr){
 		super(context,attr);
 		mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mPaint.setTextSize(mLrcFontSize);
 	}
-	
+
 	public void setListener(LrcViewListener l){
 		mLrcViewListener = l;
 	}
@@ -64,11 +70,12 @@ public class LrcView extends View implements ILrcView{
 	public void setLoadingTipText(String text){
 		mLoadingLrcTip = text;
 	}
-	
+
 	@Override
 	protected void onDraw(Canvas canvas) {
 		final int height = getHeight(); // height of this view
 		final int width = getWidth() ; // width of this view
+
 		if(mLrcRows == null || mLrcRows.size() == 0){
 			if(mLoadingLrcTip != null){
 				// draw tip when no lrc.
@@ -80,24 +87,35 @@ public class LrcView extends View implements ILrcView{
 			return;
 		}
 
-		int rowY = 0; // vertical point of each row. 
+		int rowY = 0; // vertical point of each row.
 		final int rowX = width / 2;
 		int rowNum = 0;
-		
+		int rowCount = 0;
 		// 1, draw highlight row at center.
 		// 2, draw rows above highlight row.
 		// 3, draw rows below highlight row.
-		
+
 		// 1 highlight row
 		if (mHignlightRow > mLrcRows.size()) {
 			return;
 		}
 		String highlightText = mLrcRows.get(mHignlightRow).content;
+		float highlightTextWidth = mPaint.measureText(highlightText);
 		int highlightRowY = height / 2 - mLrcFontSize;
 		mPaint.setColor(mHignlightRowColor);
 		mPaint.setTextSize(mLrcFontSize);
 		mPaint.setTextAlign(Align.CENTER);
-		canvas.drawText(highlightText, rowX, highlightRowY, mPaint);
+		if (highlightTextWidth > width) {
+			LinkedList<String> lines = getTextList(width, highlightText, highlightTextWidth);
+			for (String str : lines) {
+				canvas.drawText(str, rowX, highlightRowY, mPaint);
+				highlightRowY += mPaddingY + mLrcFontSize;
+				rowCount++;
+			}
+		} else {
+			canvas.drawText(highlightText, rowX, highlightRowY, mPaint);
+			rowCount++;
+		}
 
 		if(mDisplayMode == DISPLAY_MODE_SEEK){
 			// draw Seek line and current time when moving.
@@ -108,31 +126,71 @@ public class LrcView extends View implements ILrcView{
 			mPaint.setTextAlign(Align.LEFT);
 			canvas.drawText(mLrcRows.get(mHignlightRow).strTime, 0, highlightRowY, mPaint);
 		}
-		
+
 		// 2 above rows
 		mPaint.setColor(mNormalRowColor);
 		mPaint.setTextSize(mLrcFontSize);
 		mPaint.setTextAlign(Align.CENTER);
 		rowNum = mHignlightRow - 1;
-		rowY = highlightRowY - mPaddingY - mLrcFontSize;
+		rowY = highlightRowY - (mPaddingY + mLrcFontSize) * rowCount;
+		rowCount = 0;
 		while( rowY > -mLrcFontSize && rowNum >= 0){
 			String text = mLrcRows.get(rowNum).content;
-			canvas.drawText(text, rowX, rowY, mPaint);
-			rowY -=  (mPaddingY + mLrcFontSize);
-			rowNum --;
+			float textWidth = mPaint.measureText(text);
+			if (textWidth > width) {
+				LinkedList<String> lines = getTextList(width, text, textWidth);
+				rowY -= (mPaddingY + mLrcFontSize) * (lines.size());
+				for (String str : lines) {
+					canvas.drawText(str, rowX, rowY, mPaint);
+					rowY += mPaddingY + mLrcFontSize;
+					rowNum--;
+					rowCount++;
+				}
+			} else {
+				canvas.drawText(text, rowX, rowY, mPaint);
+				rowNum--;
+				rowCount++;
+			}
+			rowY -= (mPaddingY + mLrcFontSize) * (rowCount + 1);
+			rowCount = 0;
 		}
-		
+
 		// 3 below rows
 		rowNum = mHignlightRow + 1;
 		rowY = highlightRowY + mPaddingY + mLrcFontSize;
 		while( rowY < height && rowNum < mLrcRows.size()){
 			String text = mLrcRows.get(rowNum).content;
-			canvas.drawText(text, rowX, rowY, mPaint);
+			float textWidth = mPaint.measureText(text);
+			if (textWidth > width) {
+				LinkedList<String> lines = getTextList(width, text, textWidth);
+				for (String str : lines) {
+					canvas.drawText(str, rowX, rowY, mPaint);
+					rowY += mPaddingY + mLrcFontSize;
+					rowNum++;
+				}
+			} else {
+				canvas.drawText(text, rowX, rowY, mPaint);
+				rowNum++;
+			}
 			rowY += (mPaddingY + mLrcFontSize);
-			rowNum ++;
 		}
 	}
-	
+
+	private LinkedList<String> getTextList(int screen_width, String text, float textWidth) {
+		int length = text.length();
+		int startIndex = 0;
+		int endIndex = Math.min((int) ((float) length * (screen_width / textWidth)), length - 1);
+		int perLineLength = endIndex - startIndex;
+		LinkedList<String> lines = new LinkedList<String>();
+		lines.add(text.substring(startIndex, endIndex));
+		while (endIndex < length - 1) {
+			startIndex = endIndex;
+			endIndex = Math.min(startIndex + perLineLength, length - 1);
+			lines.add(text.substring(startIndex, endIndex));
+		}
+		return lines;
+	}
+
 	public void seekLrc(int position) {
 	    if(mLrcRows == null || position < 0 || position > mLrcRows.size()) {
 	        return;
@@ -144,11 +202,6 @@ public class LrcView extends View implements ILrcView{
 			mLrcViewListener.onLrcSeeked(position, lrcRow);
 		}
 	}
-	
-	private float mLastMotionY;
-	private PointF mPointerOneLastMotion = new PointF();
-	private PointF mPointerTwoLastMotion = new PointF();
-	private boolean mIsFirstMove = false; // whether is first move , some events can't not detected in touch down, 
 										  // such as two pointer touch, so it's good place to detect it in first move
 	
 	@Override
@@ -159,36 +212,38 @@ public class LrcView extends View implements ILrcView{
 		}
 		
 		switch (event.getAction()) {
-		case MotionEvent.ACTION_DOWN:
-			Log.d(TAG,"down,mLastMotionY:"+mLastMotionY);
-			mLastMotionY = event.getY();
-			mIsFirstMove = true;
-			invalidate();
-			break;
-		case MotionEvent.ACTION_MOVE:
-			
-			if(event.getPointerCount() == 2){
-				Log.d(TAG, "two move");
-				doScale(event);
-				return true;
-			}
-			Log.d(TAG, "one move");
-			// single pointer mode ,seek
-			if(mDisplayMode == DISPLAY_MODE_SCALE){
-				 //if scaling but pointer become not two ,do nothing.
-				return true;
-			}
-			
-			doSeek(event);
-			break;	
-		case MotionEvent.ACTION_CANCEL:
-		case MotionEvent.ACTION_UP:
-			if(mDisplayMode == DISPLAY_MODE_SEEK){
-				seekLrc(mHignlightRow);
-			}
-			mDisplayMode = DISPLAY_MODE_NORMAL;
-			invalidate();
-			break;
+			//ACTION_DOWN: 表示用户开始触摸.
+			case MotionEvent.ACTION_DOWN:
+				Log.d(TAG, "down,mLastMotionY:" + mLastMotionY);
+				mLastMotionY = event.getY();
+				mIsFirstMove = true;
+				this.actionDownX = event.getX();
+				invalidate();
+				break;
+			//ACTION_MOVE: 表示用户在移动(手指或者其他)
+			case MotionEvent.ACTION_MOVE:
+				if (event.getPointerCount() == 2) {
+					//有两个触碰点
+					Log.d(TAG, "two move");
+					doScale(event);
+					return true;
+				}
+				Log.d(TAG, "one move");
+				// single pointer mode ,seek
+				if (mDisplayMode == DISPLAY_MODE_SCALE) {
+					//if scaling but pointer become not two ,do nothing.
+					return true;
+				}
+				doSeek(event);
+				break;
+			case MotionEvent.ACTION_CANCEL:
+			case MotionEvent.ACTION_UP:
+				if (mDisplayMode == DISPLAY_MODE_SEEK) {
+					seekLrc(mHignlightRow);
+				}
+				mDisplayMode = DISPLAY_MODE_NORMAL;
+				invalidate();
+				break;
 		}
 		return true;
 	}

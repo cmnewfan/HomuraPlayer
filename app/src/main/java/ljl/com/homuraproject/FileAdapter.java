@@ -25,6 +25,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -131,9 +132,11 @@ public class FileAdapter extends BaseAdapter {
         }
         if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
+            FileActivity.currentLyricFile = currentLyric;
             sendMessage("UpdateLyric");
         } else {
             FileActivity.currentLyric = null;
+            FileActivity.currentLyricFile = null;
         }
     }
 
@@ -150,10 +153,47 @@ public class FileAdapter extends BaseAdapter {
         }
         if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
+            FileActivity.currentLyricFile = currentLyric;
             sendMessage("UpdateLyric");
         } else {
             FileActivity.currentLyric = null;
+            FileActivity.currentLyricFile = null;
         }
+    }
+
+    public static String GetLyricEncoding(File targerFile) {
+        String codeType = "UTF-8";
+        try {
+            BufferedInputStream is = new BufferedInputStream(new FileInputStream(targerFile));
+            if (is.markSupported()) {
+                is.mark(4);
+                byte[] first3bytes = new byte[3];
+                is.read(first3bytes);
+                is.reset();
+                if (first3bytes[0] == (byte) 0xEF && first3bytes[1] == (byte) 0xBB
+                        && first3bytes[2] == (byte) 0xBF) {// utf-8
+                    codeType = "utf-8";
+                } else if (first3bytes[0] == (byte) 0xFF
+                        && first3bytes[1] == (byte) 0xFE) {
+                    codeType = "unicode";
+                } else if (first3bytes[0] == (byte) 0xFE
+                        && first3bytes[1] == (byte) 0xFF) {
+                    codeType = "utf-16be";
+                } else if (first3bytes[0] == (byte) 0xFF
+                        && first3bytes[1] == (byte) 0xFF) {
+                    codeType = "utf-16le";
+                } else {
+                    codeType = "GBK";
+                }
+            } else {
+                codeType = "GBK";
+            }
+        } catch (FileNotFoundException ex) {
+            ;
+        } catch (IOException ex) {
+            ;
+        }
+        return codeType;
     }
 
     private static String getLyric(File currentLyric) {
@@ -268,8 +308,8 @@ public class FileAdapter extends BaseAdapter {
                     bundle.putString("file_path", tempFile.getAbsolutePath());
                     sendMessage("Play", bundle);
                     notifyDataSetChanged();
-                } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".jpg") ||
-                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".JPG")) {
+                } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".jpg") ||
+                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".png")) {
                     Uri data = Uri.fromFile(tempFile);
                     Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
                     context.startActivity(Intent.createChooser(sendIntent, ""));

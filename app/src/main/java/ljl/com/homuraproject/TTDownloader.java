@@ -40,7 +40,6 @@ public class TTDownloader {
 
     /**
      * Convert character string to hex string.
-     *
      * @param str string to convert
      */
     private static String toHexString(String str) {
@@ -74,7 +73,6 @@ public class TTDownloader {
         // 去除半角特殊符号，空格，逗号，etc
         str = str.replaceAll("[\\s\\/:\\@\\`\\~\\-,\\.]+", "");
         // 去除全角特殊符号
-
         str = str.replaceAll("[\u2014\u2018\u201c\u2026\u3001\u3002\u300a\u300b\u300e\u300f\u3010\u3011" +
                 "\u30fb\uff01\uff08\uff09\uff0c\uff1a\uff1b\uff1f\uff5e\uffe5]+", "");
         return str;
@@ -82,9 +80,8 @@ public class TTDownloader {
 
     /**
      * Parameters must be encoded in utf8.
-     *
      * @param artist can be null
-     * @param title  title of the song
+     * @param title title of the song
      * @return url for quering
      */
     private static String buildQueryUrl(String artist, String title) {
@@ -106,21 +103,24 @@ public class TTDownloader {
         try {
             int code = computeCode(item.mId, item.mArtist, item.mTitle);
             String url = buildDownloadUrl(item.mId, code);
+
             String result = getHttpResponse(url);
             return result;
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
         return "";
     }
 
     /**
      * Download a single lyric for a song
      *
-     * @param item    the song info
+     * @param item the song info
      * @param lrcPath file path to save this lyric
      * @return
      */
+
     public static boolean download(QueryResult item, String lrcPath) {
         try {
             String result = download(item);
@@ -129,10 +129,6 @@ public class TTDownloader {
             }
             FileIO.SaveLyric(result, lrcPath);
             FileAdapter.Update();
-            /*FileWriter fstream = new FileWriter(lrcPath, false);
-            BufferedWriter out = new BufferedWriter(fstream);
-            out.write(result);
-            out.close();*/
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -143,7 +139,7 @@ public class TTDownloader {
     /**
      * Batch download a bunch of lyrics
      *
-     * @param items   the list of song infos
+     * @param items the list of song infos
      * @param lrcPath file path to save this lyric
      * @param flag
      * @return
@@ -182,9 +178,8 @@ public class TTDownloader {
 
     /**
      * Query server for lyrics info, parameters MUST be encoded in utf8.
-     *
      * @param artist can be null
-     * @param title  title of the song
+     * @param title title of the song
      * @return
      */
     public static ArrayList<QueryResult> query(String artist, String title) {
@@ -222,6 +217,7 @@ public class TTDownloader {
     }
 
     private static String getHttpResponse(String urlString) {
+
         HttpURLConnection urlConnection = null;
         try {
             URL url = new URL(urlString);
@@ -246,16 +242,16 @@ public class TTDownloader {
                 urlConnection.disconnect();
             }
         }
+
         return null;
     }
 
     /**
      * Compute code for a given lrcId. Must call {@link #query(String, String)}
      * first, which returns a XML file containing all parameters.
-     *
-     * @param lrcId  attribute in the XML file, unique id
+     * @param lrcId attribute in the XML file, unique id
      * @param artist attribute in the XML file, not the artist used in querying
-     * @param title  attribute in the XML file, not the title used in querying
+     * @param title attribute in the XML file, not the title used in querying
      * @return
      */
     private static int computeCode(int lrcId, String artist, String title)
@@ -308,5 +304,4 @@ public class TTDownloader {
         intVal5 = intVal5 * (intVal2 ^ lrcId);
         return intVal5;
     }
-
 }

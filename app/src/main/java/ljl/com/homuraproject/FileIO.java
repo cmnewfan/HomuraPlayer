@@ -15,6 +15,7 @@ import java.util.ArrayList;
  */
 public class FileIO {
     public final static String LyricFolder = "/storage/sdcard1/Lyrics";
+    public final static File Folder = Environment.getExternalStorageDirectory();
 
     public static boolean SaveLyric(String lyrics, String fileName) throws IOException {
         FileOutputStream fos = null;
@@ -24,6 +25,7 @@ public class FileIO {
             if (Environment.getExternalStorageState().equals(
                     Environment.MEDIA_MOUNTED)) {
                 File f = new File(FileIO.LyricFolder + "/" + fileName + ".lrc");
+                f = new File(Folder + "/Lyrics/" + fileName + ".lrc");
                 if (f.exists()) {
                     f.delete();
                 }

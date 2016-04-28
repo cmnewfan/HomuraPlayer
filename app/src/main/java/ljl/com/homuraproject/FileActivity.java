@@ -18,10 +18,12 @@ import android.support.v7.app.AlertDialog;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
+import android.view.DragEvent;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -60,6 +62,7 @@ public class FileActivity extends Activity {
     public static ArrayList<File> currentPlayList;
     public static File currentPlayingFile;
     public static String currentLyric;
+    public static File currentLyricFile;
     public static String currentPlayingTitle;
     public static String LastPlayingFile;
     public static String currentArtist;
@@ -187,36 +190,9 @@ public class FileActivity extends Activity {
                     List<LrcRow> rows = builder.getLrcRows(currentLyric);
                     lrcView.setLrc(rows);
                 } else if (msg.obj.toString().equals("SetMusicTitle")) {
-                    lrcView.setLrc(null);
+                    //lrcView.setLrc(null);
                     setTitle(currentPlayingTitle);
                     PlayService.UpdateNotification(currentPlayingTitle, currentArtist);
-                    /*NotificationCompat.Builder mBuilder =
-                            (NotificationCompat.Builder) new NotificationCompat.Builder(getApplicationContext())
-                                    .setSmallIcon(R.drawable.icon)
-                                    .setContentTitle("Title:")
-                                    .setContentText(currentPlayingTitle);
-                    // Creates an explicit intent for an Activity in your app
-                    Intent resultIntent = new Intent(getApplicationContext(), FileActivity.class);
-                    // The stack builder object will contain an artificial back stack for the
-                    // start Activity.
-                    // This ensures that navigating backward from the Activity leads out of
-                    // your application to the Home screen.
-                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
-                    // Adds the back stack for the Intent (but not the Intent itself)
-                    stackBuilder.addParentStack(FileActivity.class);
-                    // Adds the Intent that starts the Activity to the top of the stack
-                    stackBuilder.addNextIntent(resultIntent);
-                    PendingIntent resultPendingIntent =
-                            stackBuilder.getPendingIntent(
-                                    0,
-                                    PendingIntent.FLAG_UPDATE_CURRENT
-                            );
-                    mBuilder.setContentIntent(resultPendingIntent);
-                    NotificationManager mNotificationManager =
-                            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-// mId allows you to update the notification later on.
-                    mNotificationManager.notify(mId, mBuilder.build());*/
-
                 } else if (msg.obj.toString().equals("PlayLrc")) {
                     lrcView.seekLrcToTime(seekBar.getProgress() * 1000);
                 } else {
@@ -247,9 +223,24 @@ public class FileActivity extends Activity {
 
     private void InitViewPagerAdapter() {
         this.viewPager = (ViewPager) this.findViewById(R.id.viewpager);
+        View.OnTouchListener ViewPagerTouchListener = new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return false;
+            }
+        };
+        View.OnDragListener ViewPagerDragListener = new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                return false;
+            }
+        };
+        this.viewPager.setOnTouchListener(ViewPagerTouchListener);
+        this.viewPager.setOnDragListener(ViewPagerDragListener);
         final ArrayList<String> titleList = new ArrayList<String>();
         titleList.add("FileList");
         titleList.add("Lyric");
+        titleList.add("MyLrc");
         LayoutInflater lf = getLayoutInflater().from(this);
         View FileView = lf.inflate(R.layout.fileview, null);
         this.main_backgroundImage = (ImageView) FileView.findViewById(R.id.main_backgroundImage);
@@ -263,6 +254,8 @@ public class FileActivity extends Activity {
         viewList.add(FileView);
         viewList.add(LrcView);
         PagerAdapter pagerAdapter = new PagerAdapter() {
+
+
             @Override
             public boolean isViewFromObject(View arg0, Object arg1) {
                 return arg0 == arg1;
@@ -299,7 +292,6 @@ public class FileActivity extends Activity {
     }
 
     private void InitPagerTabStrip() {
-        //pagerTitleStrip = (PagerTitleStrip) findViewById(R.id.pagertitle);
         pagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
         pagerTabStrip.setTabIndicatorColor(getResources().getColor(R.color.material_blue_grey_800));
         pagerTabStrip.setDrawFullUnderline(false);
