@@ -1,4 +1,4 @@
-package ljl.com.homuraproject;
+package ljl.com.homuraproject.Adapter;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -8,6 +8,10 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.io.File;
+
+import ljl.com.homuraproject.Activity.FileActivity;
+import ljl.com.homuraproject.PlayService;
+import ljl.com.homuraproject.R;
 
 /**
  * Created by Administrator on 2015/9/15.
@@ -56,10 +60,8 @@ public class MusicListAdapter extends BaseAdapter {
                 if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".mp3") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac")) {
-                    FileAdapter.beforeMusicPlay(tempFile, files);
-                    //HomuraPlayer player = HomuraPlayer.getInstance(Uri.fromFile(tempFile), con);
-                    FileAdapter.sendMessage("Play");
-                    //player.play();
+                    PlayService.generatePlayList(tempFile, files);
+                    //FileAdapter.sendMessage("NOTIFICATION_PLAY");
                     notifyDataSetChanged();
                 }
             }

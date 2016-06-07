@@ -1,4 +1,4 @@
-package ljl.com.homuraproject;
+package ljl.com.homuraproject.Activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -6,6 +6,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+
+import ljl.com.homuraproject.R;
 
 /**
  * Created by Administrator on 2015/8/31.

@@ -14,16 +14,18 @@ import android.os.Message;
 import android.widget.RemoteViews;
 
 import java.io.File;
+import java.util.ArrayList;
+
+import ljl.com.homuraproject.Activity.FileActivity;
+import ljl.com.homuraproject.Control.LyricControl;
 
 /**
  * Created by hzfd on 2016/3/4.
  */
 public class PlayService extends Service {
-
-
-    final public static String Pause = "Notification_Pause";
-    final public static String Play = "Notification_Play";
-    final public static String Next = "Notification_Next";
+    final public static String NOTIFICATION_PAUSE = "Notification_Pause";
+    final public static String NOTIFICATION_PLAY = "Notification_Play";
+    final public static String NOTIFICATION_NEXT = "Notification_Next";
     final private static String BroadCastName = "com.Broadcast.PlayServiceBroadcast";
     final private static int NOTIFY_ID = 100;
     private static MediaPlayer myPlayer;
@@ -63,7 +65,7 @@ public class PlayService extends Service {
     }
 
     public static void replay() {
-        if (myPlayer != null && state.equals("Pause")) {
+        if (myPlayer != null && state.equals("NOTIFICATION_PAUSE")) {
             myPlayer.start();
             state = "Playing";
         }
@@ -77,7 +79,7 @@ public class PlayService extends Service {
     public static void pause() {
         if (myPlayer != null) {
             myPlayer.pause();
-            state = "Pause";
+            state = "NOTIFICATION_PAUSE";
         }
     }
 
@@ -94,12 +96,12 @@ public class PlayService extends Service {
         }
         if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
             FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
-            FileActivity.fileAdapter.sendCurrentLyric();
+            LyricControl.sendCurrentLyric();
             Bundle bundle = new Bundle();
             bundle.putInt("op", 1);
             bundle.putInt("LastTime", 0);
             bundle.putString("file_path", FileActivity.currentPlayingFile.getAbsolutePath());
-            FileAdapter.sendMessage("Play", bundle);
+            PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
             FileActivity.fileAdapter.notifyDataSetChanged();
         }
     }
@@ -141,6 +143,28 @@ public class PlayService extends Service {
         return myPlayer.getCurrentPosition() / 1000;
     }
 
+    public static void generatePlayList(File tempFile, File[] files) {
+        FileActivity.currentPlayingFile = tempFile;
+        FileActivity.currentPlayList = new ArrayList<File>();
+        FileActivity.currentPlayList.add(tempFile);
+        Boolean flag = false;
+        for (int i = 0; i < files.length; i++) {
+            File tFile = files[i];
+            if (!tFile.isDirectory()) {
+                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".mp3") ||
+                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
+                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
+                    if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
+                        FileActivity.currentPlayList.add(tFile);
+                    } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
+                        flag = true;
+                    }
+                }
+            }
+        }
+        LyricControl.sendCurrentLyric();
+    }
+
     @Override
     public IBinder onBind(Intent arg0) {
         return null;
@@ -151,9 +175,9 @@ public class PlayService extends Service {
         super.onCreate();
         //final Intent intent = new Intent().setAction(BroadCastName).setPackage(getPackageName());
         remoteViews = new RemoteViews(getPackageName(), R.layout.custom_notification);
-        final PendingIntent PlayIntent = getPendingSelfIntent(this, BroadCastName, Play);
-        final PendingIntent PauseIntent = getPendingSelfIntent(this, BroadCastName, Pause);
-        final PendingIntent NextIntent = getPendingSelfIntent(this, BroadCastName, Next);
+        final PendingIntent PlayIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PLAY);
+        final PendingIntent PauseIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PAUSE);
+        final PendingIntent NextIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_NEXT);
         remoteViews.setOnClickPendingIntent(R.id.notification_next, NextIntent);
         remoteViews.setOnClickPendingIntent(R.id.notification_play, PlayIntent);
         remoteViews.setOnClickPendingIntent(R.id.notification_pause, PauseIntent);
@@ -177,9 +201,9 @@ public class PlayService extends Service {
         intent.setAction(action);
         intent.setPackage(getPackageName());
         intent.putExtra("Extra", extra);
-        if (extra.equals(Play))
+        if (extra.equals(NOTIFICATION_PLAY))
             return PendingIntent.getBroadcast(context, 0, intent, 0);
-        else if (extra.equals(Pause))
+        else if (extra.equals(NOTIFICATION_PAUSE))
             return PendingIntent.getBroadcast(context, 1, intent, 0);
         else
             return PendingIntent.getBroadcast(context, 2, intent, 0);
@@ -222,7 +246,7 @@ public class PlayService extends Service {
         this.myPlayer = MediaPlayer.create(this, uri);
         FileActivity.seekBar.setMax(this.myPlayer.getDuration() / 1000);
         FileActivity.seekBar.setProgress(startTime);
-        FileAdapter.sendMessage("Play2");
+        PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
         lastFile = new File(String.valueOf(uri)).getName();
         this.myPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -234,13 +258,14 @@ public class PlayService extends Service {
                     }
                     init(Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)), 0);
                     FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
-                    FileAdapter.sendCurrentLyric();
+                    LyricControl.sendCurrentLyric();
                     play();
-                    FileAdapter.sendMessage("Play2");
+                    PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
                     FileActivity.fileAdapter.notifyDataSetChanged();
                 } else {
-                    FileAdapter.sendMessage("Stop");
-                    FileAdapter.sendMessage("SetTitle");
+                    PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
+                    //FileAdapter.sendMessage("SetTitle");
+                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                 }
             }
         });

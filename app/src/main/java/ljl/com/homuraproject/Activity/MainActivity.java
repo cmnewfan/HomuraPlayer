@@ -1,10 +1,11 @@
-package ljl.com.homuraproject;
+package ljl.com.homuraproject.Activity;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+
+import ljl.com.homuraproject.Control.LyricControl;
+import ljl.com.homuraproject.R;
 
 
 public class MainActivity extends Activity {
@@ -18,6 +19,7 @@ public class MainActivity extends Activity {
         }
         else {
             setContentView(R.layout.activity_main);
+            LyricControl.Init();
             final Intent intent = new Intent();
             intent.setClass(this, FileActivity.class);
             Thread thread = new Thread() {
@@ -33,28 +35,5 @@ public class MainActivity extends Activity {
             };
             thread.start();
         }
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 }

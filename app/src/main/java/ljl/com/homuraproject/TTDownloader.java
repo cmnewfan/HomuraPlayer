@@ -22,6 +22,9 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import ljl.com.homuraproject.Control.FileIO;
+import ljl.com.homuraproject.Control.LyricControl;
+
 /**
  * Utils for quering and getting lyrics from qianqianjingting server.
  */
@@ -128,7 +131,7 @@ public class TTDownloader {
                 return false;
             }
             FileIO.SaveLyric(result, lrcPath);
-            FileAdapter.Update();
+            LyricControl.Update();
             return true;
         } catch (IOException e) {
             e.printStackTrace();

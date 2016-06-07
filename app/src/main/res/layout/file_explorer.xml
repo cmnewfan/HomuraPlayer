@@ -60,6 +60,38 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/linear_layout_onlongclick"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/btn_delete"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="1"
+                    android:src="@android:drawable/ic_menu_delete" />
+
+                <ImageButton
+                    android:id="@+id/btn_set"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="1"
+                    android:src="@android:drawable/ic_menu_call" />
+
+                <ImageButton
+                    android:id="@+id/btn_search"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="1"
+                    android:src="@android:drawable/ic_menu_search" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/linear_layout_normal"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"

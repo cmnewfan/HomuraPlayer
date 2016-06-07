@@ -1,9 +1,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".MainActivity">
+    tools:context=".Activity.MainActivity">
     <item
         android:id="@+id/action_settings"
-        android:title=""
-        android:orderInCategory="100" app:showAsAction="never" />
+        android:menuCategory="system"
+        android:orderInCategory="1"
+        android:title="更新数据库" />
+    <item
+        android:id="@+id/automation_control"
+        android:checkable="true"
+        android:checked="true"
+        android:menuCategory="system"
+        android:orderInCategory="2"
+        android:title="自动滑动" />
+    <item
+        android:id="@+id/share"
+        android:menuCategory="system"
+        android:orderInCategory="3"
+        android:title="分享到" />
 </menu>

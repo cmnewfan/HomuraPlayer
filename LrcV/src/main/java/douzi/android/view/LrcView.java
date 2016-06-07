@@ -112,6 +112,7 @@ public class LrcView extends View implements ILrcView{
 				highlightRowY += mPaddingY + mLrcFontSize;
 				rowCount++;
 			}
+			highlightRowY -= mPaddingY + mLrcFontSize;
 		} else {
 			canvas.drawText(highlightText, rowX, highlightRowY, mPaint);
 			rowCount++;
@@ -132,26 +133,27 @@ public class LrcView extends View implements ILrcView{
 		mPaint.setTextSize(mLrcFontSize);
 		mPaint.setTextAlign(Align.CENTER);
 		rowNum = mHignlightRow - 1;
-		rowY = highlightRowY - (mPaddingY + mLrcFontSize) * rowCount;
+		rowY = highlightRowY - (mPaddingY + mLrcFontSize) * rowCount;//first blank row before highlightRowY
 		rowCount = 0;
 		while( rowY > -mLrcFontSize && rowNum >= 0){
 			String text = mLrcRows.get(rowNum).content;
 			float textWidth = mPaint.measureText(text);
 			if (textWidth > width) {
 				LinkedList<String> lines = getTextList(width, text, textWidth);
-				rowY -= (mPaddingY + mLrcFontSize) * (lines.size());
+				rowY -= (mPaddingY + mLrcFontSize) * (lines.size() - 1);//rows needed to paint
 				for (String str : lines) {
 					canvas.drawText(str, rowX, rowY, mPaint);
 					rowY += mPaddingY + mLrcFontSize;
 					rowNum--;
 					rowCount++;
 				}
+				rowY -= mPaddingY + mLrcFontSize;
 			} else {
 				canvas.drawText(text, rowX, rowY, mPaint);
 				rowNum--;
-				rowCount++;
+				rowCount++;//only one row be painted
 			}
-			rowY -= (mPaddingY + mLrcFontSize) * (rowCount + 1);
+			rowY -= (mPaddingY + mLrcFontSize) * rowCount;
 			rowCount = 0;
 		}
 
@@ -166,13 +168,13 @@ public class LrcView extends View implements ILrcView{
 				for (String str : lines) {
 					canvas.drawText(str, rowX, rowY, mPaint);
 					rowY += mPaddingY + mLrcFontSize;
-					rowNum++;
 				}
+				rowNum++;
 			} else {
 				canvas.drawText(text, rowX, rowY, mPaint);
+				rowY += (mPaddingY + mLrcFontSize);
 				rowNum++;
 			}
-			rowY += (mPaddingY + mLrcFontSize);
 		}
 	}
 

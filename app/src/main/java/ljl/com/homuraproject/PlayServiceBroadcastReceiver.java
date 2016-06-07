@@ -11,18 +11,17 @@ import android.view.View;
 public class PlayServiceBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        String fuck = intent.getStringExtra("Extra");
-        if (intent.getStringExtra("Extra").equals(PlayService.Pause)) {
+        if (intent.getStringExtra("Extra").equals(PlayService.NOTIFICATION_PAUSE)) {
             PlayService.pause();
             PlayService.ControlNotificationView(R.id.notification_play, View.VISIBLE);
             PlayService.ControlNotificationView(R.id.notification_pause, View.GONE);
-            PlayService.SendMessageToMain("Pause");
-        } else if (intent.getStringExtra("Extra").equals(PlayService.Play)) {
+            PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Pause);
+        } else if (intent.getStringExtra("Extra").equals(PlayService.NOTIFICATION_PLAY)) {
             PlayService.replay();
             PlayService.ControlNotificationView(R.id.notification_pause, View.VISIBLE);
             PlayService.ControlNotificationView(R.id.notification_play, View.GONE);
-            PlayService.SendMessageToMain("Play2");
-        } else if (intent.getStringExtra("Extra").equals(PlayService.Next)) {
+            PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromNotification);
+        } else if (intent.getStringExtra("Extra").equals(PlayService.NOTIFICATION_NEXT)) {
             PlayService.next();
         }
     }

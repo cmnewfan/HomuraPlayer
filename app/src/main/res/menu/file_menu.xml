@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/delete_file"
+        android:icon="@android:drawable/ic_menu_delete"
+        android:menuCategory='system'
+        android:orderInCategory="0"
+        android:title="删除文件" />
+    <item
+        android:id="@+id/phone"
+        android:icon="@android:drawable/ic_menu_call"
+        android:menuCategory='system'
+        android:orderInCategory="1"
+        android:title="设为铃声" />
+</menu>

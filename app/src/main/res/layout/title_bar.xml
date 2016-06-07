@@ -4,15 +4,22 @@
     android:layout_height="fill_parent"
     android:orientation="horizontal">
 
+    <ImageButton
+        android:id="@+id/imageButton"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:scaleType="center"
+        android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha" />
     <TextView
         android:id="@+id/myTitle"
-        android:text="Bug Report"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:singleLine="true"
+        android:layout_marginTop="8dp"
         android:ellipsize="marquee"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:marqueeRepeatLimit="marquee_forever"
         android:scrollHorizontally="true"
-        android:focusable="true"
-        android:focusableInTouchMode="true" />
+        android:singleLine="true"
+        android:text="Bug Report" />
 </LinearLayout>
