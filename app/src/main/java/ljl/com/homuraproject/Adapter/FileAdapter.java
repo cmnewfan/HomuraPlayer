@@ -152,9 +152,10 @@ public class FileAdapter extends BaseAdapter {
         fileName.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
+                tempFile = new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString());
                 PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_OpenOptionsMenu);
                 ClipData clipData = ClipData.newPlainText("", "");
-                clipData.addItem(new ClipData.Item(tempFile.getAbsolutePath()));
+                clipData.addItem(new ClipData.Item(tempFile.getPath()));
                 View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(view);
                 view.startDrag(clipData, shadowBuilder, view, 0);
                 return false;

@@ -2,18 +2,22 @@ package ljl.com.homuraproject.Activity;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.media.MediaScannerConnection;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.provider.MediaStore;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.PagerTabStrip;
 import android.support.v4.view.ViewPager;
@@ -400,7 +404,7 @@ public class FileActivity extends Activity {
             @Override
             public boolean onDrag(View v, DragEvent event) {
                 if (event.getAction() == DragEvent.ACTION_DROP) {
-                    FileIO.DeleteFile(event.getClipData().getItemAt(0).getText().toString());
+                    FileIO.DeleteFile(event.getClipData().getItemAt(1).getText().toString());
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
                     deleteButton.getBackground().clearColorFilter();
@@ -430,6 +434,50 @@ public class FileActivity extends Activity {
                     linear_layout_onlongclick.setVisibility(View.GONE);
                     phoneButton.getBackground().clearColorFilter();
                     phoneButton.invalidate();
+                    File file = new File(event.getClipData().getItemAt(1).getText().toString());
+                    if (file.isFile()
+                            ) {
+                        ContentValues values = new ContentValues();
+                        Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                                new String[]{MediaStore.Video.Media.TITLE,
+                                        MediaStore.Audio.Media.DURATION,
+                                        MediaStore.Audio.Media.ARTIST,
+                                        MediaStore.Audio.Media.DISPLAY_NAME,
+                                        MediaStore.Audio.Media.SIZE,
+                                        MediaStore.Video.Media._ID
+                                },
+                                "_display_name=?",
+                                new String[]{file.getName()},
+                                null);
+                        try {
+                            c.moveToFirst();
+                        } catch (NullPointerException ex) {
+                            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("数据库查询失败，请检查文件后更新数据库").show();
+                            return true;
+                        }
+                        if (c.getCount() > 0) {
+                            values.put(MediaStore.MediaColumns.DATA, file.getAbsolutePath());
+                            values.put(MediaStore.Audio.Media.TITLE, c.getString(0));
+                            values.put(MediaStore.MediaColumns.SIZE, c.getString(4));
+                            values.put(MediaStore.Audio.Media.ARTIST, c.getString(2));
+                            values.put(MediaStore.MediaColumns.MIME_TYPE, "audio/*");
+                            values.put(MediaStore.Audio.Media.IS_RINGTONE, true);
+                            values.put(MediaStore.Audio.Media.DURATION, c.getString(1));
+                            values.put(MediaStore.Audio.Media.IS_NOTIFICATION, false);
+                            values.put(MediaStore.Audio.Media.IS_ALARM, false);
+                            values.put(MediaStore.Audio.Media.IS_MUSIC, false);
+                        }
+                        Uri uri = MediaStore.Audio.Media.getContentUriForPath(file.getAbsolutePath());
+                        getContentResolver().delete(uri, MediaStore.MediaColumns.DATA
+                                + "=\"" + file.getAbsolutePath() + "\"", null);
+                        Uri newUri = getContentResolver().insert(uri, values);
+                        //getContentResolver().update(uri, values, MediaStore.MediaColumns.DATA, new String[]{file.getAbsolutePath()});
+                        RingtoneManager.setActualDefaultRingtoneUri(FileActivity.this,
+                                RingtoneManager.TYPE_RINGTONE, newUri);
+                        new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置成功").show();
+                    } else {
+                        new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置失败,文件类型错误").show();
+                    }
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
                     phoneButton.getBackground().setColorFilter(0x77000000, PorterDuff.Mode.SRC_ATOP);
                     phoneButton.invalidate();

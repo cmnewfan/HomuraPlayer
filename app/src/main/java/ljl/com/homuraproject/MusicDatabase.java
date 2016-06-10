@@ -22,6 +22,7 @@ public class MusicDatabase {
                         MediaStore.Audio.Media.DURATION,
                         MediaStore.Audio.Media.ARTIST,
                         MediaStore.Audio.Media.DISPLAY_NAME,
+                        MediaStore.Audio.Media.SIZE
                 },
                 "_display_name=?",
                 fileName,

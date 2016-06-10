@@ -151,7 +151,7 @@ public class PlayService extends Service {
         for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
-                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".mp3") ||
+                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).toLowerCase().equals(".mp3") ||
                         tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
                     if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {

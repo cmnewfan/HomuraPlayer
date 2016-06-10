@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"></uses-permission>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
     <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"></uses-permission>
 
     <application
         android:name=".MyApplication"
