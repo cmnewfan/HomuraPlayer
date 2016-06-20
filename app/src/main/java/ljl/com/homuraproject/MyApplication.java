@@ -8,14 +8,12 @@ import android.content.Intent;
  * Created by Administrator on 2015/8/31.
  */
 public class MyApplication extends Application {
-
     private static Context context;
 
     public void onCreate() {
         super.onCreate();
         MyApplication.context = getApplicationContext();
-        Thread.setDefaultUncaughtExceptionHandler(
-                new UnCaughtExceptionHandler());
+        Thread.setDefaultUncaughtExceptionHandler(new UnCaughtExceptionHandler());
     }
 
     public static Context getAppContext() {
@@ -50,13 +48,11 @@ public class MyApplication extends Application {
             }
             Intent intent = new Intent ();
             intent.setAction("android.intent.action.BUG_REPORT");
-            //intent.setClass(getApplicationContext(),ErrorActivity.class);
             intent.putExtra("Error", errorMessage.toString());
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             System.exit(1);
-            //android.os.Process.killProcess(android.os.Process.myPid());
         }
     }
 }
