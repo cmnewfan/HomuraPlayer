@@ -14,6 +14,7 @@ import android.media.MediaScannerConnection;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
@@ -27,14 +28,13 @@ import android.telephony.TelephonyManager;
 import android.view.DragEvent;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.EditText;
+import android.widget.AbsListView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -46,7 +46,6 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import douzi.android.view.DefaultLrcBuilder;
@@ -68,11 +67,10 @@ import ljl.com.homuraproject.TTDownloader;
 /**
  * Created by Administrator on 2015/7/31.
  */
-public class FileActivity extends Activity {
-    private static final int mId = 1;
-    public static Handler handler;
-    public static SeekBar seekBar;
-    public static FileAdapter fileAdapter;
+public class FileActivity extends Activity implements View.OnTouchListener {
+    private static Handler handler;
+    private static SeekBar seekBar;
+    private static FileAdapter fileAdapter;
     public static File currentFile;
     public static String currentDirectory;
     public static ArrayList<File> currentPlayList;
@@ -100,9 +98,15 @@ public class FileActivity extends Activity {
     private ImageButton mImageButton;
     private LinearLayout linear_layout_normal;
     private LinearLayout linear_layout_onlongclick;
-    private SharedPreferences sharedPreferences;
+    private LinearLayout linear_layout_onlongclick_text;
+    private LinearLayout progress_layout;
+    private static SharedPreferences sharedPreferences;
     private int LastPlayingTime;
     private PowerManager.WakeLock wakeLock;
+    private int scrolledX = -1;
+    private float touch_x = 0;
+    private float touch_y = 0;
+    private static final Object RecordLock = new Object();
     private BroadcastReceiver myReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -120,7 +124,6 @@ public class FileActivity extends Activity {
                     }
                 }
                 editor.commit();
-                //FileAdapter.sendMessage("Stop");
                 PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
             }
         }
@@ -132,6 +135,7 @@ public class FileActivity extends Activity {
         super.onCreate(savedInstanceState);
         //start play service
         Intent intent = new Intent("com.service.PlayService");
+        //Service Intent must be explicit. from Android 5.0
         intent.setPackage(getPackageName());
         startService(intent);
         //set custom title
@@ -143,16 +147,18 @@ public class FileActivity extends Activity {
         );
         //WakeLock
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, FileActivity.class.getName());
-        wakeLock.acquire();
+        //wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, FileActivity.class.getName());
+        //wakeLock.acquire();
         //telephone state listener
         TelephonyManager manager = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
         manager.listen(new MyPhoneStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
         registerReceiver(myReceiver, new IntentFilter("android.intent.action.PHONE_STATE"));
         //Fill View
-        this.sharedPreferences = this.getSharedPreferences("music_player_info", Context.MODE_PRIVATE);
-        //Init Automation
-        Constants.AutomationControl = sharedPreferences.getBoolean("AutomationControl", true);
+        sharedPreferences = this.getSharedPreferences("music_player_info", Context.MODE_PRIVATE);
+        Boolean isUsed = sharedPreferences.getBoolean("Used", false);
+        if (!isUsed) {
+            showInstruction();
+        }
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -226,6 +232,11 @@ public class FileActivity extends Activity {
                         case Constants.ViewControl_OpenOptionsMenu:
                             linear_layout_normal.setVisibility(View.GONE);
                             linear_layout_onlongclick.setVisibility(View.VISIBLE);
+                            progress_layout.setVisibility(View.GONE);
+                            linear_layout_onlongclick_text.setVisibility(View.VISIBLE);
+                            break;
+                        case Constants.ViewControl_OnKeyDown:
+                            OnKeyDown();
                             break;
                         default:
                             break;
@@ -240,7 +251,7 @@ public class FileActivity extends Activity {
                             final int item = i;
                             Thread download_thread = new Thread() {
                                 public void run() {
-                                    boolean flag = TTDownloader.download(queryList.get(item), FileActivity.currentPlayingTitle);
+                                    boolean flag = TTDownloader.download(queryList.get(item), queryList.get(item).mTitle);
                                     if (flag) {
                                         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastSuccess);
                                     } else {
@@ -256,6 +267,51 @@ public class FileActivity extends Activity {
         };
     }
 
+    private void showInstruction() {
+        new AlertDialog.Builder(this).setTitle("拖拽功能说明").setMessage("App支持对拖拽文件进行删除、搜索歌词、设置铃声的操作，谢谢您的使用").setPositiveButton("确定", null).show();
+        sharedPreferences.edit().putBoolean("Used", true).commit();
+    }
+
+    public static Message getMainLoopMessage() {
+        return handler.obtainMessage();
+    }
+
+    public static void sendMessage(Message mes) {
+        handler.sendMessage(mes);
+    }
+
+    public static void NotifyDataChangd() {
+        fileAdapter.notifyDataSetChanged();
+    }
+
+    public static int GetSeekbarProgress() {
+        return seekBar.getProgress();
+    }
+
+    public static int GetSeekBarMax() {
+        return seekBar.getMax();
+    }
+
+    public static void SeekbarIncrement(int increment) {
+        seekBar.incrementProgressBy(increment);
+    }
+
+    public static void SeekBarPost(Runnable runnable, long time) {
+        seekBar.postDelayed(runnable, time);
+    }
+
+    public static void SetSeekbarProgress(int progress) {
+        seekBar.setProgress(progress);
+    }
+
+    public static void SetSeekbarMax(int max) {
+        seekBar.setMax(max);
+    }
+
+    public static void RemoveSekbarCallbacks(Runnable runnable) {
+        seekBar.removeCallbacks(runnable);
+    }
+
     private void scanSdCard() {
         /*IntentFilter intentfilter = new IntentFilter( Intent.ACTION_MEDIA_SCANNER_STARTED);
         intentfilter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
@@ -268,56 +324,81 @@ public class FileActivity extends Activity {
     }
 
     public void mediaScan(File file) {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            file = Environment.getExternalStorageDirectory();
+        } else {
+            file = Environment.getDataDirectory();
+        }
         MediaScannerConnection.scanFile(FileActivity.this,
                 new String[]{file.getAbsolutePath()}, null,
                 new MediaScannerConnection.OnScanCompletedListener() {
                     @Override
                     public void onScanCompleted(String path, Uri uri) {
-                        Toast.makeText(FileActivity.this, "Scan successfully", Toast.LENGTH_LONG).show();
+                        PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastSuccess);
                     }
                 });
     }
 
     private void InitViewPagerAdapter() {
         this.viewPager = (ViewPager) this.findViewById(R.id.viewpager);
-        View.OnTouchListener ViewPagerTouchListener = new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                return false;
-            }
-        };
-        View.OnDragListener ViewPagerDragListener = new View.OnDragListener() {
-            @Override
-            public boolean onDrag(View v, DragEvent event) {
-                return false;
-            }
-        };
-        this.viewPager.setOnTouchListener(ViewPagerTouchListener);
-        this.viewPager.setOnDragListener(ViewPagerDragListener);
         final ArrayList<String> titleList = new ArrayList<String>();
         titleList.add("FileList");
         titleList.add("Lyric");
         titleList.add("MyLrc");
         LayoutInflater lf = getLayoutInflater().from(this);
         View FileView = lf.inflate(R.layout.fileview, null);
-        this.main_backgroundImage = (ImageView) FileView.findViewById(R.id.main_backgroundImage);
-        main_backgroundImage.setImageAlpha(140);
+        //this.main_backgroundImage = (ImageView) FileView.findViewById(R.id.main_backgroundImage);
+        //main_backgroundImage.setImageAlpha(10);
         this.listView = (ListView) FileView.findViewById(R.id.file_listView);
         fileAdapter = new FileAdapter(FileActivity.this);
         this.listView.setAdapter(fileAdapter);
+        this.listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if (scrollState == SCROLL_STATE_IDLE) {
+                    scrolledX = view.getFirstVisiblePosition();
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+            }
+        });
         this.listView.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
                 if (event.getAction() == DragEvent.ACTION_DROP) {
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
+                    progress_layout.setVisibility(View.VISIBLE);
+                    linear_layout_onlongclick_text.setVisibility(View.GONE);
                 }
                 return true;
             }
         });
+        this.listView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touch_x = event.getX();
+                        touch_y = event.getY();
+                        break;
+                    case MotionEvent.ACTION_CANCEL:
+                        float now_x = event.getX();
+                        float now_y = event.getY();
+                        if ((now_x - touch_x > 40 && (Math.abs(now_y - touch_y) < (listView.getHeight() / 4)))) {
+                            OnKeyDown();
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
         View LrcView = lf.inflate(R.layout.lrcview, null);
         this.lrcView = (LrcView) LrcView.findViewById(R.id.lrcView);
-        final ArrayList<View> viewList = new ArrayList<View>();// 将要分页显示的View装入数组中
+        final ArrayList<View> viewList = new ArrayList<View>();
         viewList.add(FileView);
         viewList.add(LrcView);
         PagerAdapter pagerAdapter = new PagerAdapter() {
@@ -361,26 +442,29 @@ public class FileActivity extends Activity {
         pagerTabStrip.setTabIndicatorColor(getResources().getColor(R.color.material_blue_grey_800));
         pagerTabStrip.setDrawFullUnderline(false);
         pagerTabStrip.setTextSpacing(50);
-
     }
 
     private void initView() {
         this.linear_layout_normal = (LinearLayout) this.findViewById(R.id.linear_layout_normal);
         this.linear_layout_onlongclick = (LinearLayout) this.findViewById(R.id.linear_layout_onlongclick);
+        this.linear_layout_onlongclick_text = (LinearLayout) this.findViewById(R.id.linear_layout_onlongclick_text);
+        this.progress_layout = (LinearLayout) this.findViewById(R.id.progressLayout);
         this.searchButton = (ImageButton) this.findViewById(R.id.btn_search);
         this.searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SearchButtonResponse();
+                Toast.makeText(FileActivity.this, "请拖拽所选文件至按钮处", Toast.LENGTH_SHORT).show();
             }
         });
         this.searchButton.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
                 if (event.getAction() == DragEvent.ACTION_DROP) {
-                    SearchButtonResponse();
+                    SearchButtonResponse(event);
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
+                    progress_layout.setVisibility(View.VISIBLE);
+                    linear_layout_onlongclick_text.setVisibility(View.GONE);
                     searchButton.getBackground().clearColorFilter();
                     searchButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
@@ -397,7 +481,7 @@ public class FileActivity extends Activity {
         this.deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FileIO.DeleteFile("");
+                Toast.makeText(FileActivity.this, "请拖拽所选文件至按钮处", Toast.LENGTH_SHORT).show();
             }
         });
         this.deleteButton.setOnDragListener(new View.OnDragListener() {
@@ -407,6 +491,8 @@ public class FileActivity extends Activity {
                     FileIO.DeleteFile(event.getClipData().getItemAt(1).getText().toString());
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
+                    progress_layout.setVisibility(View.VISIBLE);
+                    linear_layout_onlongclick_text.setVisibility(View.GONE);
                     deleteButton.getBackground().clearColorFilter();
                     deleteButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
@@ -423,7 +509,7 @@ public class FileActivity extends Activity {
         this.phoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ;
+                Toast.makeText(FileActivity.this, "请拖拽所选文件至按钮处", Toast.LENGTH_SHORT).show();
             }
         });
         this.phoneButton.setOnDragListener(new View.OnDragListener() {
@@ -432,11 +518,12 @@ public class FileActivity extends Activity {
                 if (event.getAction() == DragEvent.ACTION_DROP) {
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
+                    progress_layout.setVisibility(View.VISIBLE);
+                    linear_layout_onlongclick_text.setVisibility(View.GONE);
                     phoneButton.getBackground().clearColorFilter();
                     phoneButton.invalidate();
                     File file = new File(event.getClipData().getItemAt(1).getText().toString());
-                    if (file.isFile()
-                            ) {
+                    if (file.isFile()) {
                         ContentValues values = new ContentValues();
                         Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                                 new String[]{MediaStore.Video.Media.TITLE,
@@ -466,15 +553,18 @@ public class FileActivity extends Activity {
                             values.put(MediaStore.Audio.Media.IS_NOTIFICATION, false);
                             values.put(MediaStore.Audio.Media.IS_ALARM, false);
                             values.put(MediaStore.Audio.Media.IS_MUSIC, false);
+                            c.close();
+                            Uri uri = MediaStore.Audio.Media.getContentUriForPath(file.getAbsolutePath());
+                            getContentResolver().delete(uri, MediaStore.MediaColumns.DATA
+                                    + "=\"" + file.getAbsolutePath() + "\"", null);
+                            Uri newUri = getContentResolver().insert(uri, values);
+                            //getContentResolver().update(uri, values, MediaStore.MediaColumns.DATA, new String[]{file.getAbsolutePath()});
+                            RingtoneManager.setActualDefaultRingtoneUri(FileActivity.this,
+                                    RingtoneManager.TYPE_RINGTONE, newUri);
+                            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置成功").show();
+                        } else {
+                            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置失败,文件类型错误").show();
                         }
-                        Uri uri = MediaStore.Audio.Media.getContentUriForPath(file.getAbsolutePath());
-                        getContentResolver().delete(uri, MediaStore.MediaColumns.DATA
-                                + "=\"" + file.getAbsolutePath() + "\"", null);
-                        Uri newUri = getContentResolver().insert(uri, values);
-                        //getContentResolver().update(uri, values, MediaStore.MediaColumns.DATA, new String[]{file.getAbsolutePath()});
-                        RingtoneManager.setActualDefaultRingtoneUri(FileActivity.this,
-                                RingtoneManager.TYPE_RINGTONE, newUri);
-                        new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置成功").show();
                     } else {
                         new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置失败,文件类型错误").show();
                     }
@@ -495,19 +585,12 @@ public class FileActivity extends Activity {
             public void onClick(View v) {
                 final PopupMenu popupMenu = new PopupMenu(FileActivity.this, v);
                 popupMenu.inflate(R.menu.menu_main);
-                popupMenu.getMenu().getItem(1).setChecked(Constants.AutomationControl);
                 popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
                         switch (item.getItemId()) {
                             case R.id.action_settings:
                                 scanSdCard();
-                                break;
-                            case R.id.automation_control:
-                                Constants.AutomationControl = !item.isChecked();
-                                SharedPreferences.Editor editor = sharedPreferences.edit();
-                                editor.putBoolean("AutomationControl", item.isChecked());
-                                editor.commit();
                                 break;
                             case R.id.share:
                                 if (!FileActivity.currentPlayingTitle.equals("")) {
@@ -583,7 +666,6 @@ public class FileActivity extends Activity {
                 if (PlayService.getPlayerState().equals("Playing")) {
                     PlayService.stop();
                 }
-
                 if (currentPlayList.indexOf(currentPlayingFile) < currentPlayList.size() - 1) {
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1);
                     LyricControl.sendCurrentLyric();
@@ -603,8 +685,50 @@ public class FileActivity extends Activity {
         this.current_Time = (TextView) this.findViewById(R.id.currentTime_tv);
     }
 
-    private void SearchButtonResponse() {
-        LayoutInflater lf = LayoutInflater.from(FileActivity.this);
+    private void SearchButtonResponse(DragEvent event) {
+        File file = new File(event.getClipData().getItemAt(1).getText().toString());
+        if (file.isFile()) {
+            Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    new String[]{MediaStore.Video.Media.TITLE,
+                            MediaStore.Audio.Media.ARTIST,
+                    },
+                    "_data=?",
+                    new String[]{file.getAbsolutePath()},
+                    null);
+            try {
+                c.moveToFirst();
+            } catch (NullPointerException ex) {
+                new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("数据库查询失败，请检查文件后更新数据库").show();
+                return;
+            }
+            if (c.getCount() > 0) {
+                final String artist = c.getString(1);
+                final String title = c.getString(0);
+                c.close();
+                Thread LyricThread = new Thread() {
+                    public void run() {
+                        final ArrayList<QueryResult> queryList = TTDownloader.query(artist, title);
+                        if (queryList != null && queryList.size() != 0) {
+                            final String[] list = new String[queryList.size()];
+                            for (int i = 0; i < list.length; i++) {
+                                list[i] = queryList.get(i).mTitle;
+                            }
+                            Object[] obj = new Object[]{queryList, list};
+                            PostMan.sendMessage(obj);
+                        } else {
+                            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastMiss);
+                        }
+                    }
+                };
+                LyricThread.start();
+                fileAdapter.notifyDataSetChanged();
+            } else {
+                new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜索失败,文件类型错误").show();
+            }
+        } else {
+            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜错失败,文件类型错误").show();
+        }
+        /*LayoutInflater lf = LayoutInflater.from(FileActivity.this);
         View FileInfoView = lf.inflate(R.layout.file_info, null);
         final EditText artistText = (EditText) FileInfoView.findViewById(R.id.ArtistText);
         final EditText titleText = (EditText) FileInfoView.findViewById(R.id.TitleText);
@@ -636,7 +760,7 @@ public class FileActivity extends Activity {
                 };
                 LyricThread.start();
             }
-        }).show();
+        }).show();*/
         fileAdapter.notifyDataSetChanged();
     }
 
@@ -674,47 +798,53 @@ public class FileActivity extends Activity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
-            if (currentFile == null) {
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                intent.putExtra("EXIT", true);
-                startActivity(intent);
-            } else if (currentFile.getAbsolutePath().equals(File.separator + "storage")) {
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                if (currentPlayingFile != null) {
-                    editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
-                }
-                seekBar.removeCallbacks(MusicRunnable.mRunnable);
-                if (PlayService.exist()) {
-                    editor.putInt("LastPlayingTime", seekBar.getProgress());
-                    if (PlayService.getPlayerState().equals("Playing")) {
-                        PlayService.stop();
-                    }
-                    PlayService.release();
-                }
-
-                //release wake lock
-                if (wakeLock != null && wakeLock.isHeld()) {
-                    wakeLock.release();
-                    wakeLock = null;
-                }
-
-                editor.commit();
-                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                intent.putExtra("EXIT", true);
-                startActivity(intent);
-            } else {
-                FileAdapter.files = currentFile.getParentFile().listFiles();
-                currentDirectory = currentDirectory.substring(0, currentDirectory.lastIndexOf(File.separator));
-                currentFile = currentFile.getParentFile();
-                Arrays.sort(FileAdapter.files);
-                this.setTitle(currentDirectory);
-                fileAdapter.InitFindState();
-                fileAdapter.notifyDataSetChanged();
-            }
+            OnKeyDown();
         }
         return false;
+    }
+
+    private void OnKeyDown() {
+        if (currentFile == null) {
+            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("EXIT", true);
+            startActivity(intent);
+        } else if (currentFile.getAbsolutePath().equals(File.separator + "storage")) {
+            seekBar.removeCallbacks(MusicRunnable.mRunnable);
+            RecordPlayingInformation();
+            //release wake lock
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra("EXIT", true);
+            startActivity(intent);
+        } else {
+            //FileAdapter.files = currentFile.getParentFile().listFiles();
+            FileAdapter.files = FileIO.SortFiles(currentFile.getParentFile());
+            currentDirectory = currentDirectory.substring(0, currentDirectory.lastIndexOf(File.separator));
+            currentFile = currentFile.getParentFile();
+            //Arrays.sort(FileAdapter.files);
+            this.setTitle(currentDirectory);
+            fileAdapter.notifyDataSetChanged();
+            if (scrolledX != -1) {
+                listView.setSelection(scrolledX);
+            }
+        }
+    }
+
+
+    public static void RecordPlayingInformation() {
+        synchronized (RecordLock) {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            if (currentPlayingFile != null) {
+                editor.putString("LastPlayingFile", currentPlayingFile.getAbsolutePath());
+                editor.putInt("LastPlayingTime", seekBar.getProgress());
+            }
+            editor.commit();
+        }
     }
 
     @Override
@@ -729,6 +859,19 @@ public class FileActivity extends Activity {
             LastPlayingFile = sharedPreferences.getString("LastPlayingFile", "");
             LastPlayingTime = sharedPreferences.getInt("LastPlayingTime", 0);
             if (LastPlayingFile.equals("")) {
+                String status = Environment.getExternalStorageState();
+                if (status.equals(Environment.MEDIA_MOUNTED)) {
+                    currentFile = Environment.getExternalStorageDirectory();
+                } else {
+                    currentFile = Environment.getDataDirectory();
+                }
+                currentFile = Environment.getExternalStorageDirectory();
+                //FileAdapter.files = currentFile.listFiles();
+                FileAdapter.files = FileIO.SortFiles(currentFile);
+                //Arrays.sort(FileAdapter.files);
+                currentDirectory = currentFile.getAbsolutePath();
+                this.setTitle(currentDirectory);
+                fileAdapter.notifyDataSetChanged();
                 return;
             }
             currentPlayingFile = new File(LastPlayingFile);
@@ -744,22 +887,21 @@ public class FileActivity extends Activity {
             //
             pauseButton.setVisibility(View.VISIBLE);
             playButton.setVisibility(View.GONE);
-
-            //seekBar.setProgress(LastPlayingTime);
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
-            //total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
             currentFile = currentPlayingFile.getParentFile();
-            FileAdapter.files = currentPlayingFile.getParentFile().listFiles();
-            Arrays.sort(FileAdapter.files);
+            FileAdapter.files = FileIO.SortFiles(currentPlayingFile.getParentFile());
+            //FileAdapter.files = currentPlayingFile.getParentFile().listFiles();
+            //Arrays.sort(FileAdapter.files);
             currentDirectory = currentPlayingFile.getParentFile().getAbsolutePath();
             this.setTitle(currentDirectory);
             fileAdapter.notifyDataSetChanged();
         } else {
-            if (currentLyric != null) {
+            //useless?
+            /*if (currentLyric != null) {
                 ILrcBuilder builder = new DefaultLrcBuilder();
                 List<LrcRow> rows = builder.getLrcRows(currentLyric);
                 lrcView.setLrc(rows);
-            }
+            }*/
             seekBar.setProgress(PlayService.GetProgress());
             current_Time.setText(String.format("%02d", PlayService.GetProgress() / 60) + ":" + String.format("%02d", PlayService.GetProgress() % 60));
             total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));
@@ -774,40 +916,9 @@ public class FileActivity extends Activity {
     }
 
     @Override
-    public void onOptionsMenuClosed(Menu menu) {
-
-    }
-
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        return true;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.file_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getOrder()) {
-            case 1:
-                scanSdCard();
-                break;
-            case 2:
-                Constants.ViewCheckboxVisible = false;
-                fileAdapter.notifyDataSetChanged();
-                break;
-            default:
-                break;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
     protected void onPause() {
         super.onPause();
+        RecordPlayingInformation();
     }
 
     @Override
@@ -816,12 +927,42 @@ public class FileActivity extends Activity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
     }
 
-    class MyPhoneStateListener extends PhoneStateListener {
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                touch_x = event.getX();
+                touch_y = event.getY();
+                break;
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP:
+                float now_x = event.getX();
+                float now_y = event.getY();
+                int width = listView.getWidth();
+                int height = listView.getHeight();
+                if ((now_x - touch_x > (listView.getWidth() / 2) && (Math.abs(now_y - touch_y) < (listView.getHeight() / 4)))) {
+                    OnKeyDown();
+                }
+                break;
+        }
+        return true;
+    }
 
+    class MyPhoneStateListener extends PhoneStateListener {
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             switch (state) {
@@ -840,7 +981,6 @@ public class FileActivity extends Activity {
                         }
                     }
                     editor.commit();
-                    //FileAdapter.sendMessage("Stop");
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
                     break;
                 case TelephonyManager.CALL_STATE_OFFHOOK:
