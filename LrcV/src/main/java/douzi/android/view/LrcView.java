@@ -208,7 +208,6 @@ public class LrcView extends View implements ILrcView{
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		
 		if(mLrcRows == null || mLrcRows.size() == 0){
 			return super.onTouchEvent(event);
 		}

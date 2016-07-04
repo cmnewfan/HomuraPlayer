@@ -10,23 +10,23 @@ import ljl.com.homuraproject.Activity.FileActivity;
  */
 public class PostMan {
     public static void sendMessage(String CommandType, int CommandCode) {
-        Message mes = FileActivity.handler.obtainMessage();
+        Message mes = FileActivity.getMainLoopMessage();
         mes.obj = CommandType;
         mes.what = CommandCode;
-        FileActivity.handler.sendMessage(mes);
+        FileActivity.sendMessage(mes);
     }
 
     public static void sendMessage(String CommandType, int CommandCode, Bundle bundle) {
-        Message mes = FileActivity.handler.obtainMessage();
+        Message mes = FileActivity.getMainLoopMessage();
         mes.obj = CommandType;
         mes.what = CommandCode;
         mes.setData(bundle);
-        FileActivity.handler.sendMessage(mes);
+        FileActivity.sendMessage(mes);
     }
 
     public static void sendMessage(Object obj) {
-        Message mes = FileActivity.handler.obtainMessage();
+        Message mes = FileActivity.getMainLoopMessage();
         mes.obj = obj;
-        FileActivity.handler.sendMessage(mes);
+        FileActivity.sendMessage(mes);
     }
 }

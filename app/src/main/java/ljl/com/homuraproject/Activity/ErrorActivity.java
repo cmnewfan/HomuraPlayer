@@ -19,12 +19,13 @@ public class ErrorActivity extends Activity {
         setContentView(R.layout.error);
         showDialog("");
     }
+
+    /**
+     *
+     * @param mess:dialog message
+     */
     private void showDialog(String mess) {
-        if (mess.equals("无法登陆到服务器")) {
-            new AlertDialog.Builder(this).setTitle("注意").setMessage("无法登录到服务器，请确认是否存在可用网络或者IP地址及端口是否填写正确。")
-                    .setNegativeButton("确定", null).show();
-        } else {
-            new AlertDialog.Builder(this).setTitle("发生错误，是否发送错误报告").setMessage(mess)
+        new AlertDialog.Builder(this).setTitle("发生错误，是否发送错误报告").setMessage(mess)
                     .setNegativeButton("确定", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
                             if (getIntent().getStringExtra("Error") != null) {
@@ -43,7 +44,5 @@ public class ErrorActivity extends Activity {
                     finish();
                 }
             }).show();
-        }
     }
-
 }

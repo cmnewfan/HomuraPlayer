@@ -8,17 +8,17 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import java.io.File;
-import java.util.Arrays;
 
 import ljl.com.homuraproject.Activity.FileActivity;
 import ljl.com.homuraproject.Constants;
+import ljl.com.homuraproject.Control.FileIO;
 import ljl.com.homuraproject.PlayService;
 import ljl.com.homuraproject.PostMan;
 import ljl.com.homuraproject.R;
@@ -32,15 +32,12 @@ public class FileAdapter extends BaseAdapter {
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
-    private Boolean isFound = false;
+    private float touch_x;
+    private float touch_y;
 
     public FileAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
-    }
-
-    public void InitFindState() {
-        isFound = false;
     }
 
     @Override
@@ -64,72 +61,27 @@ public class FileAdapter extends BaseAdapter {
     public View getView(int i, View view, ViewGroup viewGroup) {
         if (view == null) {
             view = inflater.inflate(R.layout.listview_item, null);
+        } else {
+            final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
+            fileName.setText(files[i].getName());
+            HighlightFolderAndPlayingFile(i, fileName);
+            return view;
         }
         final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
-        final ImageButton fileButton = (ImageButton) view.findViewById(R.id.fileButton);
-        fileName.setWidth(view.getWidth() - fileButton.getWidth());
         fileName.setText(files[i].getName());
-        final String file_path = files[i].getAbsolutePath();
-        if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
-            Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
-            rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
-            if (files[i].isDirectory()) {
-                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
-                leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
-                fileName.setCompoundDrawables(leftDrawable, null, rightDrawable, null);
-                fileName.setTextColor(Color.YELLOW);
-            } else {
-                fileName.setCompoundDrawables(null, null, rightDrawable, null);
-                fileName.setTextColor(Color.YELLOW);
-            }
-            if (Constants.AutomationControl && !isFound) {
-                Bundle bundle = new Bundle();
-                bundle.putInt("Target", i);
-                PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ScrollTo, bundle);
-            }
-            this.isFound = true;
-        } else {
-            if (files[i].isDirectory()) {
-                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
-                leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
-                fileName.setCompoundDrawables(leftDrawable, null, null, null);
-                fileName.setTextColor(Color.WHITE);
-            } else {
-                fileName.setCompoundDrawables(null, null, null, null);
-                fileName.setTextColor(Color.WHITE);
-            }
-            if (Constants.AutomationControl && !isFound && i < files.length - 1) {
-                Bundle bundle = new Bundle();
-                bundle.putInt("Target", i);
-                PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ScrollTo, bundle);
-            } else {
-                isFound = true;
-            }
-        }
-
-        if (files[i].isDirectory()) {
-            Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
-            leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
-            fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
-        }
-        fileButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_OpenOptionsMenu);
-            }
-        });
+        HighlightFolderAndPlayingFile(i, fileName);
         fileName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                isFound = false;
                 tempFile = new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString());
                 if (tempFile.isDirectory()) {
-                    files = tempFile.listFiles();
-                    Arrays.sort(files);
+                    //files = tempFile.listFiles();
+                    files = FileIO.SortFiles(tempFile);
+                    //Arrays.sort(files);
                     FileActivity.currentFile = tempFile;
                     FileActivity.currentDirectory = FileActivity.currentDirectory + File.separator + fileName.getText();
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
-                    FileActivity.fileAdapter.notifyDataSetChanged();
+                    notifyDataSetChanged();
                 } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".mp3") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac") ||
@@ -161,6 +113,60 @@ public class FileAdapter extends BaseAdapter {
                 return false;
             }
         });
+        fileName.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        touch_x = event.getX();
+                        touch_y = event.getRawY();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        float now_x = event.getX();
+                        float now_y = event.getY();
+                        float raw_y = event.getRawY();
+                        int width = fileName.getWidth();
+                        int height = fileName.getHeight();
+                        if ((now_x - touch_x > 40 && (Math.abs(raw_y - touch_y) < fileName.getHeight()))) {
+                            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_OnKeyDown);
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
         return view;
+    }
+
+    private void HighlightFolderAndPlayingFile(int i, TextView fileName) {
+        if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
+            Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
+            rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
+            if (files[i].isDirectory()) {
+                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+                leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
+                fileName.setCompoundDrawables(leftDrawable, null, rightDrawable, null);
+                fileName.setTextColor(Color.YELLOW);
+            } else {
+                fileName.setCompoundDrawables(null, null, rightDrawable, null);
+                fileName.setTextColor(Color.YELLOW);
+            }
+        } else {
+            if (files[i].isDirectory()) {
+                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+                leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
+                fileName.setCompoundDrawables(leftDrawable, null, null, null);
+                fileName.setTextColor(Color.WHITE);
+            } else {
+                fileName.setCompoundDrawables(null, null, null, null);
+                fileName.setTextColor(Color.WHITE);
+            }
+        }
+        if (files[i].isDirectory()) {
+            Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+            leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
+            fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
+        }
     }
 }

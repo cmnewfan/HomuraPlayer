@@ -12,14 +12,14 @@ public class MusicRunnable {
     public static Runnable mRunnable = new Runnable() {
         @Override
         public void run() {
-            if (FileActivity.seekBar.getProgress() < FileActivity.seekBar.getMax() - 1) {
+            if (FileActivity.GetSeekbarProgress() < FileActivity.GetSeekBarMax() - 1) {
                 try {
                     if (PlayService.exist() && PlayService.getPlayerState().equals("Playing")) {
-                        FileActivity.seekBar.incrementProgressBy(1);
-                        //FileAdapter.sendMessage("PlayLrc");
+                        FileActivity.SeekbarIncrement(1);
+                        //FileActivity.RecordPlayingInformation();
                         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_PlayLrc);
                     }
-                    FileActivity.seekBar.postDelayed(this, 1000);
+                    FileActivity.SeekBarPost(this, 1000);
                 } catch (IllegalStateException ex) {
                     ex.printStackTrace();
                 }

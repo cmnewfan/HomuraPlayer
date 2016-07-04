@@ -10,7 +10,6 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Message;
 import android.widget.RemoteViews;
 
 import java.io.File;
@@ -42,12 +41,6 @@ public class PlayService extends Service {
         mNotificationManager.notify(NOTIFY_ID, notification);
     }
 
-    public static void SendMessageToMain(String context) {
-        Message message = FileActivity.handler.obtainMessage();
-        message.obj = context;
-        FileActivity.handler.sendMessage(message);
-    }
-
     public static int GetLength() {
         return myPlayer.getDuration() / 1000;
     }
@@ -60,6 +53,7 @@ public class PlayService extends Service {
         if (myPlayer != null) {
             start();
             myPlayer.start();
+            FileActivity.RecordPlayingInformation();
             state = "Playing";
         }
     }
@@ -72,8 +66,8 @@ public class PlayService extends Service {
     }
 
     private static void start() {
-        FileActivity.seekBar.removeCallbacks(MusicRunnable.mRunnable);
-        FileActivity.seekBar.postDelayed(MusicRunnable.mRunnable, 1000);
+        FileActivity.RemoveSekbarCallbacks(MusicRunnable.mRunnable);
+        FileActivity.SeekBarPost(MusicRunnable.mRunnable, 1000);
     }
 
     public static void pause() {
@@ -102,7 +96,7 @@ public class PlayService extends Service {
             bundle.putInt("LastTime", 0);
             bundle.putString("file_path", FileActivity.currentPlayingFile.getAbsolutePath());
             PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
-            FileActivity.fileAdapter.notifyDataSetChanged();
+            FileActivity.NotifyDataChangd();
         }
     }
 
@@ -173,7 +167,7 @@ public class PlayService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        //final Intent intent = new Intent().setAction(BroadCastName).setPackage(getPackageName());
+        //init notification
         remoteViews = new RemoteViews(getPackageName(), R.layout.custom_notification);
         final PendingIntent PlayIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PLAY);
         final PendingIntent PauseIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PAUSE);
@@ -244,14 +238,14 @@ public class PlayService extends Service {
 
     private void init(Uri uri, int startTime) {
         this.myPlayer = MediaPlayer.create(this, uri);
-        FileActivity.seekBar.setMax(this.myPlayer.getDuration() / 1000);
-        FileActivity.seekBar.setProgress(startTime);
+        FileActivity.SetSeekbarMax(this.myPlayer.getDuration() / 1000);
+        FileActivity.SetSeekbarProgress(startTime);
         PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
         lastFile = new File(String.valueOf(uri)).getName();
         this.myPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                FileActivity.seekBar.setProgress(FileActivity.seekBar.getMax());
+                FileActivity.SetSeekbarProgress(FileActivity.GetSeekBarMax());
                 if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
                     if (myPlayer != null && myPlayer.isPlaying()) {
                         myPlayer.stop();
@@ -261,10 +255,9 @@ public class PlayService extends Service {
                     LyricControl.sendCurrentLyric();
                     play();
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
-                    FileActivity.fileAdapter.notifyDataSetChanged();
+                    FileActivity.NotifyDataChangd();
                 } else {
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
-                    //FileAdapter.sendMessage("SetTitle");
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                 }
             }

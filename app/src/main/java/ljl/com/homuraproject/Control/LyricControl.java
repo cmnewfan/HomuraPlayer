@@ -1,6 +1,7 @@
 package ljl.com.homuraproject.Control;
 
 import android.media.MediaMetadataRetriever;
+import android.os.Environment;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -22,13 +23,35 @@ import ljl.com.homuraproject.MyApplication;
 import ljl.com.homuraproject.PostMan;
 
 /**
- * Created by hzfd on 2016/5/4.
+ * Created by hzfd on
  */
 public class LyricControl {
     private static File[] lyrics;
 
     public static void Init() {
-        lyrics = new File(Constants.LyricFolder).listFiles();
+        if (HasSdCard()) {
+            File file = new File(Constants.LyricFolder);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            lyrics = new File(Constants.LyricFolder).listFiles();
+        } else {
+            Constants.LyricFolder = Environment.getDataDirectory() + "/Lyrics/";
+            File file = new File(Constants.LyricFolder);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            lyrics = new File(Constants.LyricFolder).listFiles();
+        }
+    }
+
+    private static boolean HasSdCard() {
+        String status = Environment.getExternalStorageState();
+        if (status.equals(Environment.MEDIA_MOUNTED)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static void sendCurrentLyric() {
@@ -84,11 +107,11 @@ public class LyricControl {
         if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
             FileActivity.currentLyricFile = currentLyric;
-            //FileAdapter.sendMessage("UpdateLyric");
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         } else {
             FileActivity.currentLyric = null;
             FileActivity.currentLyricFile = null;
+            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         }
     }
 
@@ -147,7 +170,6 @@ public class LyricControl {
         if (currentLyric != null) {
             FileActivity.currentLyric = getLyric(currentLyric);
             FileActivity.currentLyricFile = currentLyric;
-            //FileAdapter.sendMessage("UpdateLyric");
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         } else {
             FileActivity.currentLyric = null;

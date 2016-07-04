@@ -14,13 +14,11 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:layout_alignParentTop="true"
-            android:alpha="140"
-            android:background="@drawable/bg_test"
             android:scaleType="centerCrop" />
 
         <ListView
             android:id="@+id/file_listView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="match_parent" />
     </RelativeLayout>
 </RelativeLayout>
