@@ -28,7 +28,8 @@
             android:ellipsize="end"
             android:lines="1"
             android:text="Homu"
-            android:textSize="20sp" />
+            android:textSize="20sp"
+            android:paddingLeft="10sp" />
 
         <TextView
             android:id="@+id/Artist"
@@ -39,7 +40,8 @@
             android:ellipsize="end"
             android:lines="1"
             android:text="Homu"
-            android:textSize="18sp" />
+            android:textSize="18sp"
+            android:paddingLeft="10sp" />
 
         <ImageButton
             android:id="@+id/notification_pause"

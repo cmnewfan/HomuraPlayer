@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ljl.com.homuraproject" >
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
-    <uses-permission android:name="android.permission.INTERNET"></uses-permission>
-    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"></uses-permission>
-    <uses-permission android:name="android.permission.MOUNT_FORMAT_FILESYSTEMS"></uses-permission>
-    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"></uses-permission>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
-    <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
-    <uses-permission android:name="android.permission.WRITE_SETTINGS"></uses-permission>
+    package="ljl.com.homuraproject">
+
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+    <uses-permission android:name="android.permission.MOUNT_FORMAT_FILESYSTEMS" />
+    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme"
-        >
+        android:theme="@style/AppTheme">
         <activity
             android:name=".Activity.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppSplash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -40,6 +41,7 @@
             android:label="BUG REPORT">
             <intent-filter>
                 <action android:name="android.intent.action.BUG_REPORT" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -51,11 +53,18 @@
                 <action android:name="com.service.PlayService" />
             </intent-filter>
         </service>
+
         <receiver android:name=".PlayServiceBroadcastReceiver">
-            <intent-filter android:priority="1000">    <!-- 设置最高优先级 -->
+            <intent-filter android:priority="1000"> <!-- 设置最高优先级 -->
                 <action android:name="com.Broadcast.PlayServiceBroadcast" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".Activity.GuideActivity"
+            android:label="@string/title_activity_guide"></activity>
+        <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
+             App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
     </application>
 
 </manifest>

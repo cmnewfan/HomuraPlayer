@@ -181,13 +181,13 @@ public class LrcView extends View implements ILrcView{
 	private LinkedList<String> getTextList(int screen_width, String text, float textWidth) {
 		int length = text.length();
 		int startIndex = 0;
-		int endIndex = Math.min((int) ((float) length * (screen_width / textWidth)), length - 1);
+		int endIndex = Math.min((int) ((float) length * (screen_width / textWidth)), length);
 		int perLineLength = endIndex - startIndex;
 		LinkedList<String> lines = new LinkedList<String>();
 		lines.add(text.substring(startIndex, endIndex));
-		while (endIndex < length - 1) {
+		while (endIndex < length) {
 			startIndex = endIndex;
-			endIndex = Math.min(startIndex + perLineLength, length - 1);
+			endIndex = Math.min(startIndex + perLineLength, length);
 			lines.add(text.substring(startIndex, endIndex));
 		}
 		return lines;

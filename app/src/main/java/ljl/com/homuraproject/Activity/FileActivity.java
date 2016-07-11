@@ -78,7 +78,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     public static String currentLyric;
     public static File currentLyricFile;
     public static String currentPlayingTitle;
-    public static String LastPlayingFile;
+    private static String LastPlayingFile;
     public static String currentArtist;
     private ListView listView;
     private TextView current_Time;
@@ -101,7 +101,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private LinearLayout linear_layout_onlongclick_text;
     private LinearLayout progress_layout;
     private static SharedPreferences sharedPreferences;
-    private int LastPlayingTime;
+    private static int LastPlayingTime;
     private PowerManager.WakeLock wakeLock;
     private int scrolledX = -1;
     private float touch_x = 0;
@@ -267,8 +267,13 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         };
     }
 
+    public static void resetLastPlayingState() {
+        LastPlayingFile = "";
+        LastPlayingTime = 0;
+    }
+
     private void showInstruction() {
-        new AlertDialog.Builder(this).setTitle("拖拽功能说明").setMessage("App支持对拖拽文件进行删除、搜索歌词、设置铃声的操作，谢谢您的使用").setPositiveButton("确定", null).show();
+        //new AlertDialog.Builder(this).setTitle("拖拽功能说明").setMessage("App支持对拖拽文件进行删除、搜索歌词、设置铃声的操作，谢谢您的使用").setPositiveButton("确定", null).show();
         sharedPreferences.edit().putBoolean("Used", true).commit();
     }
 
@@ -313,13 +318,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     }
 
     private void scanSdCard() {
-        /*IntentFilter intentfilter = new IntentFilter( Intent.ACTION_MEDIA_SCANNER_STARTED);
-        intentfilter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
-        intentfilter.addDataScheme("file");
-        ScanSdReceiver scanSdReceiver = new ScanSdReceiver();
-        registerReceiver(scanSdReceiver, intentfilter);
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                Uri.parse("/mnt" + FileActivity.currentPlayingFile.getAbsolutePath())));*/
         mediaScan(FileActivity.currentPlayingFile);
     }
 
@@ -347,8 +345,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         titleList.add("MyLrc");
         LayoutInflater lf = getLayoutInflater().from(this);
         View FileView = lf.inflate(R.layout.fileview, null);
-        //this.main_backgroundImage = (ImageView) FileView.findViewById(R.id.main_backgroundImage);
-        //main_backgroundImage.setImageAlpha(10);
         this.listView = (ListView) FileView.findViewById(R.id.file_listView);
         fileAdapter = new FileAdapter(FileActivity.this);
         this.listView.setAdapter(fileAdapter);
@@ -595,9 +591,14 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                             case R.id.share:
                                 if (!FileActivity.currentPlayingTitle.equals("")) {
                                     Intent sendIntent = new Intent(Intent.ACTION_SEND);
-                                    sendIntent.setType("text/plain");
+                                    sendIntent.setType("image/*");
+                                    Uri targetUri = FileIO.getImageUri(currentPlayingFile.getParentFile());
+                                    if (targetUri != null) {
+                                        sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
+                                    }
+                                    ;
                                     sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
-                                    sendIntent.putExtra(Intent.EXTRA_TEXT, "我正在听这个:" + FileActivity.currentPlayingTitle);
+                                    sendIntent.putExtra(Intent.EXTRA_TEXT, FileActivity.currentPlayingTitle);
                                     sendIntent.putExtra(Intent.EXTRA_TITLE, "From HomuraPlayer");
                                     sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                                     startActivity(Intent.createChooser(sendIntent, "share"));
@@ -620,7 +621,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             public void onClick(View view) {
                 playButton.setVisibility(View.GONE);
                 pauseButton.setVisibility(View.VISIBLE);
-                if (!PlayService.getPlayerState().equals("Playing")) {
+                if (PlayService.getPlayerState() != null && !PlayService.getPlayerState().equals("Playing")) {
                     PlayService.play();
                 }
                 PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play);
@@ -630,8 +631,10 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         this.pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (PlayService.getPlayerState().equals("Playing")) {
+                if (PlayService.getPlayerState() != null && PlayService.getPlayerState().equals("Playing")) {
                     PlayService.pause();
+                } else {
+                    return;
                 }
                 PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Pause);
             }
@@ -640,10 +643,11 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         this.prevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (PlayService.getPlayerState().equals("Playing")) {
+                if (PlayService.getPlayerState() != null && PlayService.getPlayerState().equals("Playing")) {
                     PlayService.stop();
+                } else {
+                    return;
                 }
-
                 if (currentPlayList.indexOf(currentPlayingFile) > 0) {
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) - 1);
                     LyricControl.sendCurrentLyric();
@@ -663,8 +667,10 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         this.nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (PlayService.getPlayerState().equals("Playing")) {
+                if (PlayService.getPlayerState() != null && PlayService.getPlayerState().equals("Playing")) {
                     PlayService.stop();
+                } else {
+                    return;
                 }
                 if (currentPlayList.indexOf(currentPlayingFile) < currentPlayList.size() - 1) {
                     currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + 1);
@@ -809,6 +815,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             intent.putExtra("EXIT", true);
             startActivity(intent);
+            PlayService.release();
         } else if (currentFile.getAbsolutePath().equals(File.separator + "storage")) {
             seekBar.removeCallbacks(MusicRunnable.mRunnable);
             RecordPlayingInformation();
@@ -897,11 +904,11 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             fileAdapter.notifyDataSetChanged();
         } else {
             //useless?
-            /*if (currentLyric != null) {
+            if (currentLyric != null) {
                 ILrcBuilder builder = new DefaultLrcBuilder();
                 List<LrcRow> rows = builder.getLrcRows(currentLyric);
                 lrcView.setLrc(rows);
-            }*/
+            }
             seekBar.setProgress(PlayService.GetProgress());
             current_Time.setText(String.format("%02d", PlayService.GetProgress() / 60) + ":" + String.format("%02d", PlayService.GetProgress() % 60));
             total_Time.setText(String.format("%02d", seekBar.getMax() / 60) + ":" + String.format("%02d", seekBar.getMax() % 60));

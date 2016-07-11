@@ -106,6 +106,10 @@ public class PlayService extends Service {
         mNotificationManager.notify(NOTIFY_ID, notification);
     }
 
+    public static void RemoveNotification() {
+        mNotificationManager.cancel(NOTIFY_ID);
+    }
+
     public static boolean exist() {
         if (myPlayer == null)
             return false;
@@ -124,6 +128,7 @@ public class PlayService extends Service {
     public static void release() {
         myPlayer.release();
         state = "release";
+        //current.stopForeground(false);
         current.stopForeground(true);
         mNotificationManager.cancel(100);
         current.stopSelf();
@@ -172,6 +177,12 @@ public class PlayService extends Service {
         final PendingIntent PlayIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PLAY);
         final PendingIntent PauseIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_PAUSE);
         final PendingIntent NextIntent = getPendingSelfIntent(this, BroadCastName, NOTIFICATION_NEXT);
+        final Intent deleteIntent = new Intent(this, PlayService.class);
+        deleteIntent.putExtra("Del", 1);
+        PendingIntent deletePendingIntent = PendingIntent.getService(this,
+                1,
+                deleteIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT);
         remoteViews.setOnClickPendingIntent(R.id.notification_next, NextIntent);
         remoteViews.setOnClickPendingIntent(R.id.notification_play, PlayIntent);
         remoteViews.setOnClickPendingIntent(R.id.notification_pause, PauseIntent);
@@ -185,6 +196,7 @@ public class PlayService extends Service {
                 setContentTitle("HomuHomu").
                 setContentIntent(pendingIntent).
                 setContent(remoteViews).
+                setDeleteIntent(deletePendingIntent).
                 build();
         startForeground(NOTIFY_ID, notification);
         current = this;
@@ -216,6 +228,10 @@ public class PlayService extends Service {
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
                 int op = bundle.getInt("op");
+                int del = bundle.getInt("Del", 0);
+                if (del == 1) {
+                    stopSelf();
+                }
                 int lastTime = bundle.getInt("LastTime");
                 switch (op) {
                     case 1:
@@ -233,7 +249,7 @@ public class PlayService extends Service {
                 }
             }
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private void init(Uri uri, int startTime) {

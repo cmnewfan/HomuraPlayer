@@ -1,18 +1,11 @@
 package ljl.com.homuraproject.Control;
 
-import android.media.MediaMetadataRetriever;
 import android.os.Environment;
-
-import org.jaudiotagger.audio.AudioFile;
-import org.jaudiotagger.audio.AudioFileIO;
-import org.jaudiotagger.tag.FieldKey;
-import org.jaudiotagger.tag.Tag;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 
 import ljl.com.homuraproject.Activity.FileActivity;
@@ -58,7 +51,9 @@ public class LyricControl {
         MusicData mMusicData = MusicDatabase.query(MyApplication.getAppContext(), new String[]{FileActivity.currentPlayingFile.getName()});
         if (mMusicData == null) {
             //needs broadcast
-            String artistName = "";
+            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getName();
+            FileActivity.currentArtist = "";
+            /*String artistName = "";
             try {
                 AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
                 Tag tag = currentAudioFile.getTag();
@@ -87,14 +82,12 @@ public class LyricControl {
             } catch (Exception ex) {
                 FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
                         (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/") + 1, FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-            }
-            //FileAdapter.sendMessage("4");
+            }*/
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastUpdate);
         } else {
             FileActivity.currentPlayingTitle = mMusicData.getTitle();
             FileActivity.currentArtist = mMusicData.getArtist();
         }
-        //FileAdapter.sendMessage("SetMusicTitle");
         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetMusicTitle);
         File currentLyric = null;
         for (int i = 0; i < lyrics.length; i++) {

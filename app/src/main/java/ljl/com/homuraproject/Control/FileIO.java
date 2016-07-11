@@ -1,5 +1,6 @@
 package ljl.com.homuraproject.Control;
 
+import android.net.Uri;
 import android.os.Environment;
 
 import java.io.BufferedWriter;
@@ -63,7 +64,7 @@ public class FileIO {
             File parent_file = target_file.getParentFile();
             if (FileActivity.currentPlayingFile.getAbsolutePath().contains(target_file.getAbsolutePath())) {
                 PlayService.stop();
-                FileActivity.LastPlayingFile = "";
+                FileActivity.resetLastPlayingState();
                 for (File f : target_file.listFiles()
                         ) {
                     DeleteFile(f.getAbsolutePath());
@@ -126,5 +127,23 @@ public class FileIO {
             sorted_files[directory_flag++] = unknown_file_list.get(i);
         }
         return sorted_files;
+    }
+
+    public static Uri getImageUri(File targeDirectory) {
+        Uri resultUri = null;
+        for (File f : targeDirectory.listFiles()
+                ) {
+            if (f.isDirectory()) {
+                resultUri = getImageUri(f);
+                if (resultUri != null) {
+                    break;
+                }
+            } else if (f.getName().toLowerCase().endsWith("jpg") ||
+                    f.getName().toLowerCase().endsWith("jpeg")) {
+                resultUri = Uri.fromFile(f);
+                break;
+            }
+        }
+        return resultUri;
     }
 }

@@ -118,12 +118,12 @@ public class FileAdapter extends BaseAdapter {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        touch_x = event.getX();
+                        touch_x = event.getRawX();
                         touch_y = event.getRawY();
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        float now_x = event.getX();
+                        float now_x = event.getRawX();
                         float now_y = event.getY();
                         float raw_y = event.getRawY();
                         int width = fileName.getWidth();

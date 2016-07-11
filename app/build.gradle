@@ -6,7 +6,7 @@ android {
     compileOptions.encoding = 'UTF-8'
     defaultConfig {
         applicationId "ljl.com.homuraproject"
-        minSdkVersion 16
+        minSdkVersion 17
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
