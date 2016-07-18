@@ -40,11 +40,7 @@ public class LyricControl {
 
     private static boolean HasSdCard() {
         String status = Environment.getExternalStorageState();
-        if (status.equals(Environment.MEDIA_MOUNTED)) {
-            return true;
-        } else {
-            return false;
-        }
+        return status.equals(Environment.MEDIA_MOUNTED);
     }
 
     public static void sendCurrentLyric() {

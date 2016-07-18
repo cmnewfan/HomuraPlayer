@@ -23,7 +23,6 @@
             android:theme="@style/AppSplash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -41,7 +40,6 @@
             android:label="BUG REPORT">
             <intent-filter>
                 <action android:name="android.intent.action.BUG_REPORT" />
-
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -62,9 +60,8 @@
 
         <activity
             android:name=".Activity.GuideActivity"
-            android:label="@string/title_activity_guide"></activity>
-        <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
-             App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
+            android:label="@string/title_activity_guide">
+        </activity>
     </application>
 
 </manifest>

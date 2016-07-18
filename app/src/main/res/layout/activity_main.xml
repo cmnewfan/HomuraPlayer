@@ -7,7 +7,6 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     android:theme="@style/AppSplash"
     tools:context=".Activity.MainActivity"
+    android:background="@drawable/background"
     >
-
-
 </LinearLayout>

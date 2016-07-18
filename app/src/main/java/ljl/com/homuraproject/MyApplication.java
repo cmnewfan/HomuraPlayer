@@ -13,7 +13,7 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         MyApplication.context = getApplicationContext();
-        Thread.setDefaultUncaughtExceptionHandler(new UnCaughtExceptionHandler());
+        //Thread.setDefaultUncaughtExceptionHandler(new UnCaughtExceptionHandler());
     }
 
     public static Context getAppContext() {

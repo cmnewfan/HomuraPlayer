@@ -111,10 +111,7 @@ public class PlayService extends Service {
     }
 
     public static boolean exist() {
-        if (myPlayer == null)
-            return false;
-        else
-            return true;
+        return myPlayer != null;
     }
 
     public static String getPlayerState() {

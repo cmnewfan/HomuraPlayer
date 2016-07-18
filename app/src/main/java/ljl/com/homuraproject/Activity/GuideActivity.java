@@ -2,8 +2,7 @@ package ljl.com.homuraproject.Activity;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.PagerTabStrip;
@@ -15,45 +14,26 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 
-import ljl.com.homuraproject.PlayService;
 import ljl.com.homuraproject.R;
 
 public class GuideActivity extends Activity {
 
+    private SharedPreferences sharedPreferences;
     private ViewPager viewPager;
     private PagerTabStrip pagerTabStrip;
     private Button guide_button;
-    private int image_view_source[] = {R.drawable.guide_1_1, R.drawable.guide_2_2};
+    private int image_view_source[] = {R.drawable.guide_1_source, R.drawable.guide_3_source,R.drawable.guide_2_source};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_guide);
-        guide_button = (Button) this.findViewById(R.id.guide_button);
-        LinearLayout.LayoutParams imgvwDimens =
-                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        InitViewAdapter();
-        //InitPagerTabStrip();
-        InitClickListener();
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_guide);
+                guide_button = (Button) this.findViewById(R.id.guide_button);
+                InitViewAdapter();
+                InitClickListener();
     }
-
-    private Bitmap getLoacalBitmap(String url) {
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 2;
-        InputStream stream = null;
-        try {
-            stream = new FileInputStream(url);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return BitmapFactory.decodeStream(stream);
-    }
-
 
     private void InitClickListener() {
         guide_button.setOnClickListener(new View.OnClickListener() {
@@ -114,13 +94,8 @@ public class GuideActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            intent.putExtra("EXIT", true);
-            startActivity(intent);
-            PlayService.release();
-        }
+        this.finish();
+        android.os.Process.killProcess(android.os.Process.myPid());
         return false;
     }
 }

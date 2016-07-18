@@ -11,7 +11,7 @@ public class Constants {
     final public static int ViewControl_SetMusicTitle = 2;
     final public static int ViewControl_UpdateLyric = 3;
     final public static int ViewControl_PlayLrc = 4;
-    final public static int ViewControl_ScrollTo = 5;
+    final public static int ViewControl_UnsupportdFormat = 5;
     final public static int ViewControl_ToastMiss = 6;
     final public static int ViewControl_ToastError = 7;
     final public static int ViewControl_ToastSuccess = 8;

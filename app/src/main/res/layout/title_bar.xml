@@ -21,5 +21,6 @@
         android:marqueeRepeatLimit="marquee_forever"
         android:scrollHorizontally="true"
         android:singleLine="true"
-        android:text="Bug Report" />
+        android:text="Bug Report"
+        android:paddingLeft="10sp"/>
 </LinearLayout>

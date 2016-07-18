@@ -8,7 +8,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -29,6 +28,7 @@ import ljl.com.homuraproject.R;
  */
 public class FileAdapter extends BaseAdapter {
     public static File[] files;
+    private static String[] SupportedCodec = new String[]{".ogg",".mp3",".m4a",".flac",".wmv"};
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
@@ -82,10 +82,7 @@ public class FileAdapter extends BaseAdapter {
                     FileActivity.currentDirectory = FileActivity.currentDirectory + File.separator + fileName.getText();
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                     notifyDataSetChanged();
-                } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".mp3") ||
-                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||
-                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".flac") ||
-                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".MP3")) {
+                } else if (isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
                     PlayService.generatePlayList(tempFile, files);
                     Bundle bundle = new Bundle();
                     bundle.putInt("op", 1);
@@ -98,6 +95,9 @@ public class FileAdapter extends BaseAdapter {
                     Uri data = Uri.fromFile(tempFile);
                     Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
                     context.startActivity(Intent.createChooser(sendIntent, ""));
+                }
+                else {
+                    PostMan.sendMessage(Constants.ViewControl,Constants.ViewControl_UnsupportdFormat);
                 }
             }
         });
@@ -113,7 +113,7 @@ public class FileAdapter extends BaseAdapter {
                 return false;
             }
         });
-        fileName.setOnTouchListener(new View.OnTouchListener() {
+        /*fileName.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
@@ -135,7 +135,7 @@ public class FileAdapter extends BaseAdapter {
                 }
                 return false;
             }
-        });
+        });*/
         return view;
     }
 
@@ -168,5 +168,15 @@ public class FileAdapter extends BaseAdapter {
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
         }
+    }
+
+    private Boolean isSupportedCodec(String targetCodec){
+        for (String codec:SupportedCodec
+             ) {
+            if(codec.equals(targetCodec)){
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -2,6 +2,7 @@ package ljl.com.homuraproject.Activity;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -9,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.PorterDuff;
 import android.media.MediaScannerConnection;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -67,6 +67,7 @@ import ljl.com.homuraproject.TTDownloader;
 /**
  * Created by Administrator on 2015/7/31.
  */
+@SuppressWarnings("unchecked")
 public class FileActivity extends Activity implements View.OnTouchListener {
     private static Handler handler;
     private static SeekBar seekBar;
@@ -107,6 +108,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private float touch_x = 0;
     private float touch_y = 0;
     private static final Object RecordLock = new Object();
+    private static String LyricName;
     private BroadcastReceiver myReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -155,10 +157,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         registerReceiver(myReceiver, new IntentFilter("android.intent.action.PHONE_STATE"));
         //Fill View
         sharedPreferences = this.getSharedPreferences("music_player_info", Context.MODE_PRIVATE);
-        Boolean isUsed = sharedPreferences.getBoolean("Used", false);
-        if (!isUsed) {
-            showInstruction();
-        }
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -214,8 +212,8 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                         case Constants.ViewControl_PlayLrc:
                             lrcView.seekLrcToTime(seekBar.getProgress() * 1000);
                             break;
-                        case Constants.ViewControl_ScrollTo:
-                            listView.setSelection(msg.getData().getInt("Target"));
+                        case Constants.ViewControl_UnsupportdFormat:
+                            Toast.makeText(MyApplication.getAppContext(), "暂不支持目标文件格式", Toast.LENGTH_SHORT).show();
                             break;
                         case Constants.ViewControl_ToastMiss:
                             Toast.makeText(MyApplication.getAppContext(), "未找到目标", Toast.LENGTH_SHORT).show();
@@ -227,7 +225,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                             Toast.makeText(MyApplication.getAppContext(), "操作成功", Toast.LENGTH_SHORT).show();
                             break;
                         case Constants.ViewControl_ToastUpdate:
-                            Toast.makeText(MyApplication.getAppContext(), "Need to update music database", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MyApplication.getAppContext(), "为找到歌曲信息，请在设置里更新数据库", Toast.LENGTH_SHORT).show();
                             break;
                         case Constants.ViewControl_OpenOptionsMenu:
                             linear_layout_normal.setVisibility(View.GONE);
@@ -251,7 +249,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                             final int item = i;
                             Thread download_thread = new Thread() {
                                 public void run() {
-                                    boolean flag = TTDownloader.download(queryList.get(item), queryList.get(item).mTitle);
+                                    boolean flag = TTDownloader.download(queryList.get(item), LyricName);
                                     if (flag) {
                                         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastSuccess);
                                     } else {
@@ -270,11 +268,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     public static void resetLastPlayingState() {
         LastPlayingFile = "";
         LastPlayingTime = 0;
-    }
-
-    private void showInstruction() {
-        //new AlertDialog.Builder(this).setTitle("拖拽功能说明").setMessage("App支持对拖拽文件进行删除、搜索歌词、设置铃声的操作，谢谢您的使用").setPositiveButton("确定", null).show();
-        sharedPreferences.edit().putBoolean("Used", true).commit();
     }
 
     public static Message getMainLoopMessage() {
@@ -461,13 +454,11 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                     linear_layout_onlongclick.setVisibility(View.GONE);
                     progress_layout.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick_text.setVisibility(View.GONE);
-                    searchButton.getBackground().clearColorFilter();
+                    Toast.makeText(FileActivity.this, "正在搜索歌词,请稍候...", Toast.LENGTH_SHORT).show();
                     searchButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
-                    searchButton.getBackground().setColorFilter(0x77000000, PorterDuff.Mode.SRC_ATOP);
                     searchButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_EXITED) {
-                    searchButton.getBackground().clearColorFilter();
                     searchButton.invalidate();
                 }
                 return true;
@@ -483,19 +474,24 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         this.deleteButton.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
+                final ClipData data = event.getClipData();
                 if (event.getAction() == DragEvent.ACTION_DROP) {
-                    FileIO.DeleteFile(event.getClipData().getItemAt(1).getText().toString());
+                    new AlertDialog.Builder(FileActivity.this).setTitle("确认").setMessage("确认删除吗?").setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if(data!=null) {
+                                FileIO.DeleteFile(data.getItemAt(1).getText().toString());
+                            }
+                        }
+                    }).setNegativeButton("取消", null).show();
                     linear_layout_normal.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick.setVisibility(View.GONE);
                     progress_layout.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick_text.setVisibility(View.GONE);
-                    deleteButton.getBackground().clearColorFilter();
                     deleteButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
-                    deleteButton.getBackground().setColorFilter(0x77000000, PorterDuff.Mode.SRC_ATOP);
                     deleteButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_EXITED) {
-                    deleteButton.getBackground().clearColorFilter();
                     deleteButton.invalidate();
                 }
                 return true;
@@ -516,7 +512,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                     linear_layout_onlongclick.setVisibility(View.GONE);
                     progress_layout.setVisibility(View.VISIBLE);
                     linear_layout_onlongclick_text.setVisibility(View.GONE);
-                    phoneButton.getBackground().clearColorFilter();
                     phoneButton.invalidate();
                     File file = new File(event.getClipData().getItemAt(1).getText().toString());
                     if (file.isFile()) {
@@ -565,10 +560,8 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                         new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("铃声设置失败,文件类型错误").show();
                     }
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
-                    phoneButton.getBackground().setColorFilter(0x77000000, PorterDuff.Mode.SRC_ATOP);
                     phoneButton.invalidate();
                 } else if (event.getAction() == DragEvent.ACTION_DRAG_EXITED) {
-                    phoneButton.getBackground().clearColorFilter();
                     phoneButton.invalidate();
                 }
                 return true;
@@ -596,7 +589,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                                     if (targetUri != null) {
                                         sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
                                     }
-                                    ;
                                     sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
                                     sendIntent.putExtra(Intent.EXTRA_TEXT, FileActivity.currentPlayingTitle);
                                     sendIntent.putExtra(Intent.EXTRA_TITLE, "From HomuraPlayer");
@@ -696,7 +688,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         if (file.isFile()) {
             Cursor c = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                     new String[]{MediaStore.Video.Media.TITLE,
-                            MediaStore.Audio.Media.ARTIST,
+                            MediaStore.Audio.Media.ARTIST
                     },
                     "_data=?",
                     new String[]{file.getAbsolutePath()},
@@ -710,6 +702,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             if (c.getCount() > 0) {
                 final String artist = c.getString(1);
                 final String title = c.getString(0);
+                LyricName = file.getName().substring(0,file.getName().lastIndexOf("."));
                 c.close();
                 Thread LyricThread = new Thread() {
                     public void run() {
@@ -732,41 +725,8 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜索失败,文件类型错误").show();
             }
         } else {
-            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜错失败,文件类型错误").show();
+            new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜索失败,文件类型错误").show();
         }
-        /*LayoutInflater lf = LayoutInflater.from(FileActivity.this);
-        View FileInfoView = lf.inflate(R.layout.file_info, null);
-        final EditText artistText = (EditText) FileInfoView.findViewById(R.id.ArtistText);
-        final EditText titleText = (EditText) FileInfoView.findViewById(R.id.TitleText);
-        artistText.setText(FileActivity.currentArtist);
-        if (FileActivity.currentPlayingTitle.contains("?")) {
-            titleText.setText(FileActivity.currentPlayingFile.getName());
-        } else {
-            titleText.setText(FileActivity.currentPlayingTitle);
-        }
-        new AlertDialog.Builder(FileActivity.this).setTitle("确认信息").setIcon(android.R.drawable.ic_dialog_info).setView(FileInfoView).setNegativeButton("确定", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                Thread LyricThread = new Thread() {
-                    public void run() {
-                        String music_title = titleText.getText().toString();
-                        String artist_name = artistText.getText().toString();
-                        final ArrayList<QueryResult> queryList = TTDownloader.query(artist_name, music_title);
-                        if (queryList != null && queryList.size() != 0) {
-                            final String[] list = new String[queryList.size()];
-                            for (int i = 0; i < list.length; i++) {
-                                list[i] = queryList.get(i).mTitle;
-                            }
-                            Object[] obj = new Object[]{queryList, list};
-                            PostMan.sendMessage(obj);
-                        } else {
-                            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastMiss);
-                        }
-                    }
-                };
-                LyricThread.start();
-            }
-        }).show();*/
         fileAdapter.notifyDataSetChanged();
     }
 
@@ -829,7 +789,9 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             intent.putExtra("EXIT", true);
             startActivity(intent);
         } else {
-            //FileAdapter.files = currentFile.getParentFile().listFiles();
+            if(viewPager.getCurrentItem()==1){
+                viewPager.setCurrentItem(0,true);
+            }
             FileAdapter.files = FileIO.SortFiles(currentFile.getParentFile());
             currentDirectory = currentDirectory.substring(0, currentDirectory.lastIndexOf(File.separator));
             currentFile = currentFile.getParentFile();
