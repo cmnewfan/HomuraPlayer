@@ -29,6 +29,7 @@ public class PlayService extends Service {
     final private static String BroadCastName = "com.Broadcast.PlayServiceBroadcast";
     final private static String[] SupportedCodec = new String[]{".ogg", ".mp3", ".m4a", ".flac", ".wmv"};
     final private static int NOTIFY_ID = 100;
+    private static ArrayList<File> currentPlayList;
     private static MediaPlayer myPlayer;
     private static String state;
     private static String lastFile;
@@ -109,18 +110,18 @@ public class PlayService extends Service {
      * @return false means it is the last song in the list, true means there are more than one songs on the list
      */
     public static boolean next() {
-        if (FileActivity.currentPlayList != null) {
+        if (currentPlayList != null) {
             // if there is more than one songs on the list, go to the next.
-            if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
+            if (currentPlayList.indexOf(FileActivity.getCurrentPlayingFile()) < currentPlayList.size() - 1) {
                 if (state.equals("Playing")) {
                     PlayService.stop();
                 }
-                FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
+                FileActivity.setCurrentPlayingFile(currentPlayList.get(currentPlayList.indexOf(FileActivity.getCurrentPlayingFile()) + 1));
                 LyricControl.sendCurrentLyric();
                 Bundle bundle = new Bundle();
                 bundle.putInt("op", 1);
                 bundle.putInt("LastTime", 0);
-                bundle.putString("file_path", FileActivity.currentPlayingFile.getAbsolutePath());
+                bundle.putString("file_path", FileActivity.getCurrentPlayingFile().getAbsolutePath());
                 PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
                 FileActivity.NotifyDataChangd();
                 return true;
@@ -197,17 +198,22 @@ public class PlayService extends Service {
         return myPlayer.getCurrentPosition() / 1000;
     }
 
+    public static ArrayList<File> getCurrentPlayList() {
+        return currentPlayList;
+    }
+
     public static void generatePlayList(File tempFile, File[] files) {
-        FileActivity.currentPlayingFile = tempFile;
-        FileActivity.currentPlayList = new ArrayList<File>();
-        FileActivity.currentPlayList.add(tempFile);
+        //FileActivity.currentPlayingFile = tempFile;
+        FileActivity.setCurrentPlayingFile(tempFile);
+        currentPlayList = new ArrayList<File>();
+        currentPlayList.add(tempFile);
         Boolean flag = false;
         for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
                 if (isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
                     if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
-                        FileActivity.currentPlayList.add(tFile);
+                        currentPlayList.add(tFile);
                     } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
                         flag = true;
                     }
@@ -318,12 +324,12 @@ public class PlayService extends Service {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
                 FileActivity.SetSeekbarProgress(FileActivity.GetSeekBarMax());
-                if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
+                if (currentPlayList.indexOf(FileActivity.getCurrentPlayingFile()) < currentPlayList.size() - 1) {
                     if (myPlayer != null && myPlayer.isPlaying()) {
                         myPlayer.stop();
                     }
-                    init(Uri.fromFile(FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1)), 0);
-                    FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
+                    init(Uri.fromFile(currentPlayList.get(currentPlayList.indexOf(FileActivity.getCurrentPlayingFile()) + 1)), 0);
+                    FileActivity.setCurrentPlayingFile(currentPlayList.get(currentPlayList.indexOf(FileActivity.getCurrentPlayingFile()) + 1));
                     LyricControl.sendCurrentLyric();
                     play();
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);

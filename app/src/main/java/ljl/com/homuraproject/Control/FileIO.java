@@ -67,7 +67,7 @@ public class FileIO {
         if (target_file.isDirectory()) {
             //delete directory
             File parent_file = target_file.getParentFile();
-            if (FileActivity.currentPlayingFile.getAbsolutePath().contains(target_file.getAbsolutePath())) {
+            if (FileActivity.getCurrentPlayingFile().getAbsolutePath().contains(target_file.getAbsolutePath())) {
                 PlayService.stop();
             }
             //delete each file in dorectory
@@ -78,22 +78,22 @@ public class FileIO {
             //delete directory
             target_file.delete();
             //sort parent file
-            FileAdapter.files = FileIO.SortFiles(parent_file);
+            FileAdapter.setFiles(FileIO.SortFiles(parent_file));
             FileActivity.NotifyDataChangd();
         } else {
             File parent_file = target_file.getParentFile();
             //delete file
-            if (target_file.getAbsolutePath().equals(FileActivity.currentPlayingFile.getAbsolutePath())) {
+            if (target_file.getAbsolutePath().equals(FileActivity.getCurrentPlayingFile().getAbsolutePath())) {
                 if (target_file.delete()) {
                     //delete success
                     //if file is last music on list
                     if (!PlayService.next()) {
-                        FileActivity.currentPlayingFile = null;
+                        FileActivity.setCurrentPlayingFile(null);
                         FileActivity.resetLastPlayingState();
                         FileActivity.RecordPlayingInformation();
                     } else {
-                        PlayService.generatePlayList(FileActivity.currentPlayingFile, FileIO.SortFiles(parent_file));
-                        FileAdapter.files = FileIO.SortFiles(parent_file);
+                        PlayService.generatePlayList(FileActivity.getCurrentPlayingFile(), FileIO.SortFiles(parent_file));
+                        FileAdapter.setFiles(FileIO.SortFiles(parent_file));
                     }
                     FileActivity.NotifyDataChangd();
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastSuccess);
@@ -102,8 +102,8 @@ public class FileIO {
                 }
             } else {
                 target_file.delete();
-                FileAdapter.files = FileIO.SortFiles(parent_file);
-                PlayService.generatePlayList(FileActivity.currentPlayingFile, FileIO.SortFiles(FileActivity.currentPlayingFile.getParentFile()));
+                FileAdapter.setFiles(FileIO.SortFiles(parent_file));
+                PlayService.generatePlayList(FileActivity.getCurrentPlayingFile(), FileIO.SortFiles(FileActivity.getCurrentPlayingFile().getParentFile()));
                 FileActivity.NotifyDataChangd();
             }
         }

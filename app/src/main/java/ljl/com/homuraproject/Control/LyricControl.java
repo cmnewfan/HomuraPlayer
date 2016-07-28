@@ -18,7 +18,9 @@ import ljl.com.homuraproject.PostMan;
  */
 public class LyricControl {
     private static File[] lyrics;
-
+    private static String currentLyric;
+    private static String currentPlayingTitle;
+    private static String currentArtist;
     /**
      * init lyric control, including default catalog
      */
@@ -49,17 +51,25 @@ public class LyricControl {
         return status.equals(Environment.MEDIA_MOUNTED);
     }
 
+    public static String getCurrentPlayingTitle() {
+        return currentPlayingTitle;
+    }
+
+    public static String getCurrentArtist() {
+        return currentArtist;
+    }
+
     /**
      * get lrc of current playing file and send to lrcView in FileActivity
      */
     public static void sendCurrentLyric() {
         //get music data of current playing file
         //MusicData mMusicData = MusicDataControl.query(MyApplication.getAppContext(), new String[]{FileActivity.currentPlayingFile.getName()});
-        MusicData mMusicData = MusicDataControl.getMusicDataFromFile(FileActivity.currentPlayingFile);
+        MusicData mMusicData = MusicDataControl.getMusicDataFromFile(FileActivity.getCurrentPlayingFile());
         if (mMusicData == null) {
             //needs broadcast
-            FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getName();
-            FileActivity.currentArtist = "";
+            currentPlayingTitle = FileActivity.getCurrentPlayingFile().getName();
+            currentArtist = "";
             /*String artistName = "";
             try {
                 AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
@@ -92,26 +102,17 @@ public class LyricControl {
             }*/
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastUpdate);
         } else {
-            FileActivity.currentPlayingTitle = mMusicData.getTitle();
-            FileActivity.currentArtist = mMusicData.getArtist();
+            currentPlayingTitle = mMusicData.getTitle();
+            currentArtist = mMusicData.getArtist();
         }
         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetMusicTitle);
         //find lyric of current playing file
-        File currentLyric = null;
-        for (int i = 0; i < lyrics.length; i++) {
-            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle)) {
-                currentLyric = lyrics[i];
-                break;
-            }
-        }
-        if (currentLyric != null) {
-            FileActivity.currentLyric = getLyric(currentLyric);
-            FileActivity.currentLyricFile = currentLyric;
+        File targetLyricFile = getTargetLyricFile();
+        if (targetLyricFile != null) {
+            currentLyric = getLyric(targetLyricFile);
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         } else {
-            FileActivity.currentLyric = null;
-            FileActivity.currentLyricFile = null;
+            currentLyric = null;
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         }
     }
@@ -162,26 +163,33 @@ public class LyricControl {
         return "";
     }
 
+    public static String getCurrentLyric() {
+        return currentLyric;
+    }
+
     /**
      * update lyric to lrcView in FileActivity
      */
     public static void Update() {
         lyrics = new File(Constants.LyricFolder).listFiles();
-        File currentLyric = null;
+        File targetLyricFile = getTargetLyricFile();
+        if (targetLyricFile != null) {
+            currentLyric = getLyric(targetLyricFile);
+            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
+        } else {
+            currentLyric = null;
+        }
+    }
+
+    private static File getTargetLyricFile() {
+        File targetLyricFile = null;
         for (int i = 0; i < lyrics.length; i++) {
             if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
-                    .contains(FileActivity.currentPlayingTitle)) {
-                currentLyric = lyrics[i];
+                    .contains(currentPlayingTitle)) {
+                targetLyricFile = lyrics[i];
                 break;
             }
         }
-        if (currentLyric != null) {
-            FileActivity.currentLyric = getLyric(currentLyric);
-            FileActivity.currentLyricFile = currentLyric;
-            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
-        } else {
-            FileActivity.currentLyric = null;
-            FileActivity.currentLyricFile = null;
-        }
+        return targetLyricFile;
     }
 }

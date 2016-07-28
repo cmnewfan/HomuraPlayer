@@ -28,8 +28,8 @@ public class MusicListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        if (FileActivity.currentPlayList != null) {
-            return FileActivity.currentPlayList.size();
+        if (PlayService.getCurrentPlayList() != null) {
+            return PlayService.getCurrentPlayList().size();
         } else {
             return 0;
         }
@@ -51,11 +51,11 @@ public class MusicListAdapter extends BaseAdapter {
             view = inflater.inflate(R.layout.listview_item, null);
         }
         final TextView mListItem = (TextView) view.findViewById(R.id.itmMessage);
-        mListItem.setText(FileActivity.currentPlayList.get(i).getName());
+        mListItem.setText(PlayService.getCurrentPlayList().get(i).getName());
         mListItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                File tempFile = new File(FileActivity.currentDirectory + File.separator + mListItem.getText().toString());
+                File tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + mListItem.getText().toString());
                 File[] files = tempFile.getParentFile().listFiles();
                 if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".mp3") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).equals(".m4a") ||

@@ -72,15 +72,9 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private static Handler handler;
     private static SeekBar seekBar;
     private static FileAdapter fileAdapter;
-    public static File currentFile;
-    public static String currentDirectory;
-    public static ArrayList<File> currentPlayList;
-    public static File currentPlayingFile;
-    public static String currentLyric;
-    public static File currentLyricFile;
-    public static String currentPlayingTitle;
+    private static File currentDirectory;
+    private static File currentPlayingFile;
     private static String LastPlayingFile;
-    public static String currentArtist;
     private ListView listView;
     private TextView current_Time;
     private ImageButton playButton;
@@ -198,15 +192,15 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 } else if (msg.obj.toString().equals(Constants.ViewControl)) {
                     switch (msg.what) {
                         case Constants.ViewControl_SetTitle:
-                            setTitle(currentDirectory);
+                            setTitle(currentDirectory.getAbsolutePath());
                             break;
                         case Constants.ViewControl_SetMusicTitle:
-                            setTitle(currentPlayingTitle);
-                            PlayService.UpdateNotification(currentPlayingTitle, currentArtist);
+                            setTitle(LyricControl.getCurrentPlayingTitle());
+                            PlayService.UpdateNotification(LyricControl.getCurrentPlayingTitle(), LyricControl.getCurrentArtist());
                             break;
                         case Constants.ViewControl_UpdateLyric:
                             ILrcBuilder builder = new DefaultLrcBuilder();
-                            List<LrcRow> rows = builder.getLrcRows(currentLyric);
+                            List<LrcRow> rows = builder.getLrcRows(LyricControl.getCurrentLyric());
                             lrcView.setLrc(rows);
                             break;
                         case Constants.ViewControl_PlayLrc:
@@ -263,6 +257,14 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 }
             }
         };
+    }
+
+    public static File getCurrentDirectory() {
+        return currentDirectory;
+    }
+
+    public static void setCurrentDirectory(File currentDirectory) {
+        FileActivity.currentDirectory = currentDirectory;
     }
 
     /**
@@ -549,7 +551,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                                 break;
                             case R.id.share:
                                 //begin when current playing title is not null
-                                if (FileActivity.currentPlayingTitle != null && (!FileActivity.currentPlayingTitle.equals(""))) {
+                                if (LyricControl.getCurrentPlayingTitle() != null && (!LyricControl.getCurrentPlayingTitle().equals(""))) {
                                     Intent sendIntent = new Intent(Intent.ACTION_SEND);
                                     //set intent type
                                     sendIntent.setType("image/*");
@@ -558,7 +560,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                                         sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
                                     }
                                     sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
-                                    sendIntent.putExtra(Intent.EXTRA_TEXT, FileActivity.currentPlayingTitle);
+                                    sendIntent.putExtra(Intent.EXTRA_TEXT, LyricControl.getCurrentPlayingTitle());
                                     sendIntent.putExtra(Intent.EXTRA_TITLE, "From HomuraPlayer");
                                     sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                                     startActivity(Intent.createChooser(sendIntent, "share"));
@@ -611,7 +613,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 if (PlayService.getPlayerState() == null) {
                     return;
                 }
-                if (currentPlayList.indexOf(currentPlayingFile) > 0) {
+                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) > 0) {
                     if (PlayService.getPlayerState().equals("Playing")) {
                         PlayService.stop();
                     }
@@ -628,7 +630,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 if (PlayService.getPlayerState() == null) {
                     return;
                 }
-                if (currentPlayList.indexOf(currentPlayingFile) < currentPlayList.size() - 1) {
+                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) < PlayService.getCurrentPlayList().size() - 1) {
                     if (PlayService.getPlayerState().equals("Playing")) {
                         PlayService.stop();
                     }
@@ -640,13 +642,17 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         });
     }
 
+    public static File getCurrentPlayingFile() {
+        return currentPlayingFile;
+    }
+
     /**
      * back to the previous music on play list or advance to the next ControlPlayList
      *
      * @param index 1 means next, -1 means previous
      */
     private void ControlPlayList(int index) {
-        currentPlayingFile = currentPlayList.get(currentPlayList.indexOf(currentPlayingFile) + index);
+        currentPlayingFile = PlayService.getCurrentPlayList().get(PlayService.getCurrentPlayList().indexOf(currentPlayingFile) + index);
         LyricControl.sendCurrentLyric();
         Intent intent = PlayService.CreateNewIntent(1, 0, currentPlayingFile.getAbsolutePath());
         intent.setPackage(getPackageName());
@@ -865,7 +871,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                if (currentPlayingFile == null || currentPlayList == null) {
+                if (currentPlayingFile == null || PlayService.getCurrentPlayList() == null) {
                     seekBar.setEnabled(false);
                 } else {
                     seekBar.setEnabled(true);
@@ -909,13 +915,13 @@ public class FileActivity extends Activity implements View.OnTouchListener {
      */
     private void OnKeyDown() {
         //if current file is null, clear activity.
-        if (currentFile == null) {
+        if (currentDirectory == null) {
             Intent intent = new Intent(getApplicationContext(), MainActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             intent.putExtra("EXIT", true);
             startActivity(intent);
             PlayService.release();
-        } else if (currentFile.getAbsolutePath().equals(File.separator + "storage")) {
+        } else if (currentDirectory.getAbsolutePath().equals(File.separator + "storage")) {
             seekBar.removeCallbacks(MusicRunnable.mRunnable);
             RecordPlayingInformation();
             //release wake lock
@@ -931,11 +937,10 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             if(viewPager.getCurrentItem()==1){
                 viewPager.setCurrentItem(0,true);
             }
-            FileAdapter.files = FileIO.SortFiles(currentFile.getParentFile());
-            currentDirectory = currentDirectory.substring(0, currentDirectory.lastIndexOf(File.separator));
-            currentFile = currentFile.getParentFile();
+            FileAdapter.setFiles(FileIO.SortFiles(currentDirectory.getParentFile()));
+            currentDirectory = currentDirectory.getParentFile();
             //Arrays.sort(FileAdapter.files);
-            this.setTitle(currentDirectory);
+            this.setTitle(currentDirectory.getAbsolutePath());
             fileAdapter.notifyDataSetChanged();
             if (scrolledX != -1) {
                 listView.setSelection(scrolledX);
@@ -958,6 +963,10 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             }
             editor.commit();
         }
+    }
+
+    public static void setCurrentPlayingFile(File currentPlayingFile) {
+        FileActivity.currentPlayingFile = currentPlayingFile;
     }
 
     @Override
@@ -1000,16 +1009,15 @@ public class FileActivity extends Activity implements View.OnTouchListener {
             pauseButton.setVisibility(View.VISIBLE);
             playButton.setVisibility(View.GONE);
             current_Time.setText(String.format("%02d", seekBar.getProgress() / 60) + ":" + String.format("%02d", seekBar.getProgress() % 60));
-            currentFile = currentPlayingFile.getParentFile();
-            FileAdapter.files = FileIO.SortFiles(currentPlayingFile.getParentFile());
-            currentDirectory = currentPlayingFile.getParentFile().getAbsolutePath();
-            this.setTitle(currentDirectory);
+            currentDirectory = currentPlayingFile.getParentFile();
+            FileAdapter.setFiles(FileIO.SortFiles(currentPlayingFile.getParentFile()));
+            this.setTitle(currentDirectory.getAbsolutePath());
             fileAdapter.notifyDataSetChanged();
         } else {
             //useless?
-            if (currentLyric != null) {
+            if (LyricControl.getCurrentLyric() != null) {
                 ILrcBuilder builder = new DefaultLrcBuilder();
-                List<LrcRow> rows = builder.getLrcRows(currentLyric);
+                List<LrcRow> rows = builder.getLrcRows(LyricControl.getCurrentLyric());
                 lrcView.setLrc(rows);
             }
             seekBar.setProgress(PlayService.GetProgress());
@@ -1028,16 +1036,15 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private void ShowDefaultCatalog() {
         String status = Environment.getExternalStorageState();
         if (status.equals(Environment.MEDIA_MOUNTED)) {
-            currentFile = Environment.getExternalStorageDirectory();
+            currentDirectory = Environment.getExternalStorageDirectory();
         } else {
-            currentFile = Environment.getDataDirectory();
+            currentDirectory = Environment.getDataDirectory();
         }
-        currentFile = Environment.getExternalStorageDirectory();
-        //FileAdapter.files = currentFile.listFiles();
-        FileAdapter.files = FileIO.SortFiles(currentFile);
+        currentDirectory = Environment.getExternalStorageDirectory();
+        //FileAdapter.files = currentDirectory.listFiles();
+        FileAdapter.setFiles(FileIO.SortFiles(currentDirectory));
         //Arrays.sort(FileAdapter.files);
-        currentDirectory = currentFile.getAbsolutePath();
-        this.setTitle(currentDirectory);
+        this.setTitle(currentDirectory.getAbsolutePath());
         fileAdapter.notifyDataSetChanged();
         return;
     }

@@ -28,7 +28,7 @@ import ljl.com.homuraproject.R;
  * Created by Administrator on 2015/7/31.
  */
 public class FileAdapter extends BaseAdapter {
-    public static File[] files;
+    private static File[] files;
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
@@ -73,29 +73,32 @@ public class FileAdapter extends BaseAdapter {
         fileName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                tempFile = new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString());
+                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + fileName.getText().toString());
                 if (tempFile.isDirectory()) {
                     //target file is directory
                     files = FileIO.SortFiles(tempFile);
-                    FileActivity.currentFile = tempFile;
-                    FileActivity.currentDirectory = FileActivity.currentDirectory + File.separator + fileName.getText();
+                    FileActivity.setCurrentDirectory(tempFile);
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                     notifyDataSetChanged();
-                } else if (PlayService.isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
-                    //target file is supported music file
-                    PlayService.generatePlayList(tempFile, files);
-                    Bundle bundle = new Bundle();
-                    bundle.putInt("op", 1);
-                    bundle.putInt("LastTime", 0);
-                    bundle.putString("file_path", tempFile.getAbsolutePath());
-                    PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
-                    notifyDataSetChanged();
-                } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".jpg") ||
-                        tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".png")) {
-                    //targer file is image file
-                    Uri data = Uri.fromFile(tempFile);
-                    Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
-                    context.startActivity(Intent.createChooser(sendIntent, ""));
+                } else if (tempFile.getName().lastIndexOf(".") != -1) {
+                    if (PlayService.isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
+                        //target file is supported music file
+                        PlayService.generatePlayList(tempFile, files);
+                        Bundle bundle = new Bundle();
+                        bundle.putInt("op", 1);
+                        bundle.putInt("LastTime", 0);
+                        bundle.putString("file_path", tempFile.getAbsolutePath());
+                        PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
+                        notifyDataSetChanged();
+                    } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".jpg") ||
+                            tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".png")) {
+                        //targer file is image file
+                        Uri data = Uri.fromFile(tempFile);
+                        Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
+                        context.startActivity(Intent.createChooser(sendIntent, ""));
+                    } else {
+                        PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UnsupportdFormat);
+                    }
                 }
                 else {
                     PostMan.sendMessage(Constants.ViewControl,Constants.ViewControl_UnsupportdFormat);
@@ -105,7 +108,7 @@ public class FileAdapter extends BaseAdapter {
         fileName.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                tempFile = new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString());
+                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + fileName.getText().toString());
                 PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_OpenOptionsMenu);
                 ClipData clipData = ClipData.newPlainText("", "");
                 clipData.addItem(new ClipData.Item(tempFile.getPath()));
@@ -147,7 +150,7 @@ public class FileAdapter extends BaseAdapter {
      * @param fileName target text view
      */
     private void highlightFolderAndPlayingFile(int i, TextView fileName) {
-        if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
+        if (FileActivity.getCurrentPlayingFile() != null && FileActivity.getCurrentPlayingFile().getAbsolutePath().contains(files[i].getAbsolutePath())) {
             Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
             rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
             if (files[i].isDirectory()) {
@@ -175,5 +178,9 @@ public class FileAdapter extends BaseAdapter {
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
         }
+    }
+
+    public static void setFiles(File[] files) {
+        FileAdapter.files = files;
     }
 }
