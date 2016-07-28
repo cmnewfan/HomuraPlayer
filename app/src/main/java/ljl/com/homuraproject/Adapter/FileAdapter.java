@@ -24,11 +24,11 @@ import ljl.com.homuraproject.R;
 
 
 /**
+ * adapter of list view in FileActivity
  * Created by Administrator on 2015/7/31.
  */
 public class FileAdapter extends BaseAdapter {
     public static File[] files;
-    private static String[] SupportedCodec = new String[]{".ogg",".mp3",".m4a",".flac",".wmv"};
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
@@ -64,25 +64,25 @@ public class FileAdapter extends BaseAdapter {
         } else {
             final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
             fileName.setText(files[i].getName());
-            HighlightFolderAndPlayingFile(i, fileName);
+            highlightFolderAndPlayingFile(i, fileName);
             return view;
         }
         final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
         fileName.setText(files[i].getName());
-        HighlightFolderAndPlayingFile(i, fileName);
+        highlightFolderAndPlayingFile(i, fileName);
         fileName.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 tempFile = new File(FileActivity.currentDirectory + File.separator + fileName.getText().toString());
                 if (tempFile.isDirectory()) {
-                    //files = tempFile.listFiles();
+                    //target file is directory
                     files = FileIO.SortFiles(tempFile);
-                    //Arrays.sort(files);
                     FileActivity.currentFile = tempFile;
                     FileActivity.currentDirectory = FileActivity.currentDirectory + File.separator + fileName.getText();
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                     notifyDataSetChanged();
-                } else if (isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
+                } else if (PlayService.isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
+                    //target file is supported music file
                     PlayService.generatePlayList(tempFile, files);
                     Bundle bundle = new Bundle();
                     bundle.putInt("op", 1);
@@ -92,6 +92,7 @@ public class FileAdapter extends BaseAdapter {
                     notifyDataSetChanged();
                 } else if (tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".jpg") ||
                         tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase().equals(".png")) {
+                    //targer file is image file
                     Uri data = Uri.fromFile(tempFile);
                     Intent sendIntent = new Intent(Intent.ACTION_VIEW, data).setDataAndType(data, "image/*");
                     context.startActivity(Intent.createChooser(sendIntent, ""));
@@ -139,7 +140,13 @@ public class FileAdapter extends BaseAdapter {
         return view;
     }
 
-    private void HighlightFolderAndPlayingFile(int i, TextView fileName) {
+    /**
+     * highlight playing folder and file
+     *
+     * @param i        index of target file in files
+     * @param fileName target text view
+     */
+    private void highlightFolderAndPlayingFile(int i, TextView fileName) {
         if (FileActivity.currentPlayingFile != null && FileActivity.currentPlayingFile.getAbsolutePath().contains(files[i].getAbsolutePath())) {
             Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
             rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
@@ -168,15 +175,5 @@ public class FileAdapter extends BaseAdapter {
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
         }
-    }
-
-    private Boolean isSupportedCodec(String targetCodec){
-        for (String codec:SupportedCodec
-             ) {
-            if(codec.equals(targetCodec)){
-                return true;
-            }
-        }
-        return false;
     }
 }

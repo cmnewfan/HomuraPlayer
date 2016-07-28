@@ -11,8 +11,6 @@ import java.io.InputStreamReader;
 import ljl.com.homuraproject.Activity.FileActivity;
 import ljl.com.homuraproject.Constants;
 import ljl.com.homuraproject.MusicData;
-import ljl.com.homuraproject.MusicDatabase;
-import ljl.com.homuraproject.MyApplication;
 import ljl.com.homuraproject.PostMan;
 
 /**
@@ -21,6 +19,9 @@ import ljl.com.homuraproject.PostMan;
 public class LyricControl {
     private static File[] lyrics;
 
+    /**
+     * init lyric control, including default catalog
+     */
     public static void Init() {
         if (HasSdCard()) {
             File file = new File(Constants.LyricFolder);
@@ -38,13 +39,23 @@ public class LyricControl {
         }
     }
 
+    /**
+     * if device has sd card
+     *
+     * @return true means having sd card, false means not
+     */
     private static boolean HasSdCard() {
         String status = Environment.getExternalStorageState();
         return status.equals(Environment.MEDIA_MOUNTED);
     }
 
+    /**
+     * get lrc of current playing file and send to lrcView in FileActivity
+     */
     public static void sendCurrentLyric() {
-        MusicData mMusicData = MusicDatabase.query(MyApplication.getAppContext(), new String[]{FileActivity.currentPlayingFile.getName()});
+        //get music data of current playing file
+        //MusicData mMusicData = MusicDataControl.query(MyApplication.getAppContext(), new String[]{FileActivity.currentPlayingFile.getName()});
+        MusicData mMusicData = MusicDataControl.getMusicDataFromFile(FileActivity.currentPlayingFile);
         if (mMusicData == null) {
             //needs broadcast
             FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getName();
@@ -85,6 +96,7 @@ public class LyricControl {
             FileActivity.currentArtist = mMusicData.getArtist();
         }
         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetMusicTitle);
+        //find lyric of current playing file
         File currentLyric = null;
         for (int i = 0; i < lyrics.length; i++) {
             if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
@@ -104,6 +116,10 @@ public class LyricControl {
         }
     }
 
+    /**get encoding type of lrc file
+     * @param currentLyric lrc file
+     * @return string if has lrc, "" if not
+     */
     private static String getLyric(File currentLyric) {
         try {
             BufferedInputStream is = new BufferedInputStream(new FileInputStream(currentLyric));
@@ -146,6 +162,9 @@ public class LyricControl {
         return "";
     }
 
+    /**
+     * update lyric to lrcView in FileActivity
+     */
     public static void Update() {
         lyrics = new File(Constants.LyricFolder).listFiles();
         File currentLyric = null;

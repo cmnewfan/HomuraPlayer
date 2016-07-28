@@ -19,6 +19,7 @@ import ljl.com.homuraproject.Activity.FileActivity;
 import ljl.com.homuraproject.Control.LyricControl;
 
 /**
+ * service for playing music
  * Created by hzfd on 2016/3/4.
  */
 public class PlayService extends Service {
@@ -26,6 +27,7 @@ public class PlayService extends Service {
     final public static String NOTIFICATION_PLAY = "Notification_Play";
     final public static String NOTIFICATION_NEXT = "Notification_Next";
     final private static String BroadCastName = "com.Broadcast.PlayServiceBroadcast";
+    final private static String[] SupportedCodec = new String[]{".ogg", ".mp3", ".m4a", ".flac", ".wmv"};
     final private static int NOTIFY_ID = 100;
     private static MediaPlayer myPlayer;
     private static String state;
@@ -36,6 +38,12 @@ public class PlayService extends Service {
     private static RemoteViews remoteViews;
     private static PendingIntent pendingIntent;
 
+    /**
+     * control view and view visibility
+     *
+     * @param viewid         view id
+     * @param viewvisibility view visibility
+     */
     public static void ControlNotificationView(int viewid, int viewvisibility) {
         remoteViews.setViewVisibility(viewid, viewvisibility);
         mNotificationManager.notify(NOTIFY_ID, notification);
@@ -45,19 +53,29 @@ public class PlayService extends Service {
         return myPlayer.getDuration() / 1000;
     }
 
+    /**
+     * get progress for seekbar
+     * @return progress for seekbar
+     */
     public static int GetProgress() {
         return myPlayer.getCurrentPosition() / 1000;
     }
 
+    /**
+     * control service to play music
+     */
     public static void play() {
         if (myPlayer != null) {
-            start();
+            FileActivity.initSeekbarRunnable();
             myPlayer.start();
             FileActivity.RecordPlayingInformation();
             state = "Playing";
         }
     }
 
+    /**
+     * for notification to play music
+     */
     public static void replay() {
         if (myPlayer != null && state.equals("NOTIFICATION_PAUSE")) {
             myPlayer.start();
@@ -65,11 +83,9 @@ public class PlayService extends Service {
         }
     }
 
-    private static void start() {
-        FileActivity.RemoveSekbarCallbacks(MusicRunnable.mRunnable);
-        FileActivity.SeekBarPost(MusicRunnable.mRunnable, 1000);
-    }
-
+    /**
+     * pause music
+     */
     public static void pause() {
         if (myPlayer != null) {
             myPlayer.pause();
@@ -77,6 +93,9 @@ public class PlayService extends Service {
         }
     }
 
+    /**
+     * stop music
+     */
     public static void stop() {
         if (myPlayer != null && (!state.equals("Stop"))) {
             myPlayer.stop();
@@ -84,20 +103,47 @@ public class PlayService extends Service {
         }
     }
 
-    public static void next() {
-        if (state.equals("Playing")) {
-            PlayService.stop();
+    /**
+     * play the next song in the list
+     *
+     * @return false means it is the last song in the list, true means there are more than one songs on the list
+     */
+    public static boolean next() {
+        if (FileActivity.currentPlayList != null) {
+            // if there is more than one songs on the list, go to the next.
+            if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
+                if (state.equals("Playing")) {
+                    PlayService.stop();
+                }
+                FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
+                LyricControl.sendCurrentLyric();
+                Bundle bundle = new Bundle();
+                bundle.putInt("op", 1);
+                bundle.putInt("LastTime", 0);
+                bundle.putString("file_path", FileActivity.currentPlayingFile.getAbsolutePath());
+                PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
+                FileActivity.NotifyDataChangd();
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
-        if (FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) < FileActivity.currentPlayList.size() - 1) {
-            FileActivity.currentPlayingFile = FileActivity.currentPlayList.get(FileActivity.currentPlayList.indexOf(FileActivity.currentPlayingFile) + 1);
-            LyricControl.sendCurrentLyric();
-            Bundle bundle = new Bundle();
-            bundle.putInt("op", 1);
-            bundle.putInt("LastTime", 0);
-            bundle.putString("file_path", FileActivity.currentPlayingFile.getAbsolutePath());
-            PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Play, bundle);
-            FileActivity.NotifyDataChangd();
+    }
+
+    /**
+     * @param targetCodec
+     * @return
+     */
+    public static Boolean isSupportedCodec(String targetCodec) {
+        for (String codec : SupportedCodec
+                ) {
+            if (codec.equals(targetCodec)) {
+                return true;
+            }
         }
+        return false;
     }
 
     public static void UpdateNotification(String title, String artist) {
@@ -110,6 +156,16 @@ public class PlayService extends Service {
         mNotificationManager.cancel(NOTIFY_ID);
     }
 
+    public static Intent CreateNewIntent(int operation, int last_time, String file_path) {
+        Intent intent = new Intent("com.service.PlayService");
+        Bundle bundle = new Bundle();
+        bundle.putInt("op", operation);
+        bundle.putInt("LastTime", last_time);
+        bundle.putString("file_path", file_path);
+        intent.putExtras(bundle);
+        return intent;
+    }
+
     public static boolean exist() {
         return myPlayer != null;
     }
@@ -119,7 +175,9 @@ public class PlayService extends Service {
     }
 
     public static void seekTo(int position) {
-        myPlayer.seekTo(position);
+        if (myPlayer != null) {
+            myPlayer.seekTo(position);
+        }
     }
 
     public static void release() {
@@ -147,9 +205,7 @@ public class PlayService extends Service {
         for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
-                if ((tFile.getName().substring(tFile.getName().lastIndexOf(".")).toLowerCase().equals(".mp3") ||
-                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".m4a") ||
-                        tFile.getName().substring(tFile.getName().lastIndexOf(".")).equals(".flac"))) {
+                if (isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
                     if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
                         FileActivity.currentPlayList.add(tFile);
                     } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
@@ -251,6 +307,9 @@ public class PlayService extends Service {
 
     private void init(Uri uri, int startTime) {
         this.myPlayer = MediaPlayer.create(this, uri);
+        if (this.myPlayer == null) {
+            return;
+        }
         FileActivity.SetSeekbarMax(this.myPlayer.getDuration() / 1000);
         FileActivity.SetSeekbarProgress(startTime);
         PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
@@ -270,6 +329,7 @@ public class PlayService extends Service {
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
                     FileActivity.NotifyDataChangd();
                 } else {
+                    FileActivity.SetSeekbarProgress(0);
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
                 }

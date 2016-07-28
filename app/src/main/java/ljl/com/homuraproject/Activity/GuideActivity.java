@@ -28,11 +28,11 @@ public class GuideActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_guide);
-                guide_button = (Button) this.findViewById(R.id.guide_button);
-                InitViewAdapter();
-                InitClickListener();
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_guide);
+        guide_button = (Button) this.findViewById(R.id.guide_button);
+        InitViewAdapter();
+        InitClickListener();
     }
 
     private void InitClickListener() {

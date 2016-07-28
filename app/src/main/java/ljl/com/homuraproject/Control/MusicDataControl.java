@@ -1,4 +1,4 @@
-package ljl.com.homuraproject;
+package ljl.com.homuraproject.Control;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -6,10 +6,13 @@ import android.provider.MediaStore;
 
 import java.io.File;
 
+import ljl.com.homuraproject.MusicData;
+import ljl.com.homuraproject.MyApplication;
 /**
+ * music database controller
  * Created by hzfd on 2016/4/29.
  */
-public class MusicDatabase {
+public class MusicDataControl {
     /**
      * to get the MusicData of music file
      *
@@ -40,8 +43,15 @@ public class MusicDatabase {
         }
     }
 
+    /**
+     * get music data from its file
+     *
+     * @param file
+     * @return
+     */
     public static MusicData getMusicDataFromFile(File file) {
         MusicData mData = null;
+        //use content resolver to query
         Cursor c = MyApplication.getAppContext().getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 new String[]{MediaStore.Video.Media.TITLE,
                         MediaStore.Audio.Media.DATA,
@@ -77,17 +87,19 @@ public class MusicDatabase {
         }
     }
 
-    //4,3,1,2
-    //3,4,1,2
-    //1,3,4,2
-    //1,2,3,4
+    /**
+     * sort music data by track id
+     * use insertion sort
+     * @param source_data source to be sorted
+     * @return sorted music data array
+     */
     public static MusicData[] SortedMusicData(MusicData[] source_data) {
         MusicData temp;
         for (int i = 0; i < source_data.length; i++) {
             temp = source_data[i];
             int j;
             for (j = i - 1; j >= 0; j--) {
-                if (source_data[j].mTrack > temp.mTrack) {
+                if (source_data[j].getTrack() > temp.getTrack()) {
                     source_data[j + 1] = source_data[j];
                 } else {
                     break;

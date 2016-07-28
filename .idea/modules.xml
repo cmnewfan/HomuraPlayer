@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/HomuraProject.iml" filepath="$PROJECT_DIR$/HomuraProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/HomuraPlayer.iml" filepath="$PROJECT_DIR$/HomuraPlayer.iml" />
       <module fileurl="file://$PROJECT_DIR$/LrcV/LrcV.iml" filepath="$PROJECT_DIR$/LrcV/LrcV.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
