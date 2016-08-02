@@ -16,6 +16,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import ljl.com.homuraproject.Activity.FileActivity;
+import ljl.com.homuraproject.Control.CUE_Control;
 import ljl.com.homuraproject.Control.LyricControl;
 
 /**
@@ -27,7 +28,7 @@ public class PlayService extends Service {
     final public static String NOTIFICATION_PLAY = "Notification_Play";
     final public static String NOTIFICATION_NEXT = "Notification_Next";
     final private static String BroadCastName = "com.Broadcast.PlayServiceBroadcast";
-    final private static String[] SupportedCodec = new String[]{".ogg", ".mp3", ".m4a", ".flac", ".wmv"};
+    final private static String[] SupportedCodec = new String[]{".ogg", ".mp3", ".m4a", ".flac", ".wmv", ".cue"};
     final private static int NOTIFY_ID = 100;
     private static ArrayList<File> currentPlayList;
     private static MediaPlayer myPlayer;
@@ -38,7 +39,7 @@ public class PlayService extends Service {
     private static PlayService current;
     private static RemoteViews remoteViews;
     private static PendingIntent pendingIntent;
-
+    private static CUE_Model cueModel;
     /**
      * control view and view visibility
      *
@@ -295,9 +296,21 @@ public class PlayService extends Service {
                 switch (op) {
                     case 1:
                         stop();
-                        init(Uri.fromFile(new File(bundle.getString("file_path"))), lastTime / 1000);
-                        seekTo(lastTime);
-                        play();
+                        if (bundle.getString("file_path").toLowerCase().endsWith(".cue")) {
+                            cueModel = CUE_Control.getCUE_ModelFromFile(new File(bundle.getString("file_path")));
+                            if (isSupportedCodec(cueModel.getFilePath().substring(cueModel.getFilePath().lastIndexOf(".")).toLowerCase())) {
+                                init(Uri.fromFile(new File(cueModel.getFilePath())), lastTime / 1000);
+                                seekTo(lastTime);
+                                play();
+                            } else {
+                                PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UnsupportdFormat);
+                            }
+                        } else {
+                            cueModel = null;
+                            init(Uri.fromFile(new File(bundle.getString("file_path"))), lastTime / 1000);
+                            seekTo(lastTime);
+                            play();
+                        }
                         break;
                     case 2:
                         stop();
@@ -309,6 +322,14 @@ public class PlayService extends Service {
             }
         }
         return START_NOT_STICKY;
+    }
+
+    public static boolean HasCueModel() {
+        return cueModel != null;
+    }
+
+    public static CUE_Model getCueModel() {
+        return cueModel;
     }
 
     private void init(Uri uri, int startTime) {

@@ -230,6 +230,10 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                         case Constants.ViewControl_OnKeyDown:
                             OnKeyDown();
                             break;
+                        case Constants.ViewControl_SetMusicTitleFromCue:
+                            setTitle(msg.getData().getString("Title"));
+                            PlayService.UpdateNotification(msg.getData().getString("Title"), msg.getData().getString("Performer"));
+                            break;
                         default:
                             break;
                     }
@@ -613,7 +617,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 if (PlayService.getPlayerState() == null) {
                     return;
                 }
-                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) > 0) {
+                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) > 0 || (PlayService.HasCueModel() && PlayService.getCueModel().IsEnableToMoveToNextOrPrev(-1))) {
                     if (PlayService.getPlayerState().equals("Playing")) {
                         PlayService.stop();
                     }
@@ -630,7 +634,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 if (PlayService.getPlayerState() == null) {
                     return;
                 }
-                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) < PlayService.getCurrentPlayList().size() - 1) {
+                if (PlayService.getCurrentPlayList().indexOf(currentPlayingFile) < PlayService.getCurrentPlayList().size() - 1 || (PlayService.HasCueModel() && PlayService.getCueModel().IsEnableToMoveToNextOrPrev(1))) {
                     if (PlayService.getPlayerState().equals("Playing")) {
                         PlayService.stop();
                     }
@@ -652,12 +656,19 @@ public class FileActivity extends Activity implements View.OnTouchListener {
      * @param index 1 means next, -1 means previous
      */
     private void ControlPlayList(int index) {
-        currentPlayingFile = PlayService.getCurrentPlayList().get(PlayService.getCurrentPlayList().indexOf(currentPlayingFile) + index);
-        LyricControl.sendCurrentLyric();
-        Intent intent = PlayService.CreateNewIntent(1, 0, currentPlayingFile.getAbsolutePath());
-        intent.setPackage(getPackageName());
-        startService(intent);
-        fileAdapter.notifyDataSetChanged();
+        if (!PlayService.HasCueModel()) {
+            currentPlayingFile = PlayService.getCurrentPlayList().get(PlayService.getCurrentPlayList().indexOf(currentPlayingFile) + index);
+            LyricControl.sendCurrentLyric();
+            Intent intent = PlayService.CreateNewIntent(1, 0, currentPlayingFile.getAbsolutePath());
+            intent.setPackage(getPackageName());
+            startService(intent);
+            fileAdapter.notifyDataSetChanged();
+        } else {
+            LyricControl.sendCurrentLyric();
+            Intent intent = PlayService.CreateNewIntent(1, PlayService.getCueModel().getNextTrack(index).getStart_time(), currentPlayingFile.getAbsolutePath());
+            intent.setPackage(getPackageName());
+            startService(intent);
+        }
     }
 
     /**
@@ -832,30 +843,40 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                 final String title = c.getString(0);
                 LyricName = file.getName().substring(0,file.getName().lastIndexOf("."));
                 c.close();
-                Thread LyricThread = new Thread() {
-                    public void run() {
-                        final ArrayList<QueryResult> queryList = TTDownloader.query(artist, title);
-                        if (queryList != null && queryList.size() != 0) {
-                            final String[] list = new String[queryList.size()];
-                            for (int i = 0; i < list.length; i++) {
-                                list[i] = queryList.get(i).mTitle;
-                            }
-                            Object[] obj = new Object[]{queryList, list};
-                            PostMan.sendMessage(obj);
-                        } else {
-                            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastMiss);
-                        }
-                    }
-                };
-                LyricThread.start();
+                StartLyricSearchThread(title, artist);
                 fileAdapter.notifyDataSetChanged();
+            } else if (PlayService.HasCueModel()) {
+                final String artist = PlayService.getCueModel().getCurrentTrack(GetSeekbarProgress() * 1000).getPerformer();
+                final String title = PlayService.getCueModel().getCurrentTrack(GetSeekbarProgress() * 1000).getTitle();
+                LyricName = artist + "-" + title;
+                StartLyricSearchThread(title, artist);
             } else {
+                c.close();
                 new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜索失败,文件类型错误").show();
             }
         } else {
             new AlertDialog.Builder(FileActivity.this).setTitle("通知").setPositiveButton("确定", null).setMessage("歌词搜索失败,文件类型错误").show();
         }
         fileAdapter.notifyDataSetChanged();
+    }
+
+    private void StartLyricSearchThread(final String title, final String artist) {
+        Thread LyricThread = new Thread() {
+            public void run() {
+                final ArrayList<QueryResult> queryList = TTDownloader.query(artist, title);
+                if (queryList != null && queryList.size() != 0) {
+                    final String[] list = new String[queryList.size()];
+                    for (int i = 0; i < list.length; i++) {
+                        list[i] = queryList.get(i).mTitle;
+                    }
+                    Object[] obj = new Object[]{queryList, list};
+                    PostMan.sendMessage(obj);
+                } else {
+                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastMiss);
+                }
+            }
+        };
+        LyricThread.start();
     }
 
     /**

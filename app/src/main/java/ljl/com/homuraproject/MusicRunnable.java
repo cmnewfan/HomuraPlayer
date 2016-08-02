@@ -1,5 +1,7 @@
 package ljl.com.homuraproject;
 
+import android.os.Bundle;
+
 import ljl.com.homuraproject.Activity.FileActivity;
 
 /**
@@ -19,6 +21,12 @@ public class MusicRunnable {
                         //increment seekbar and update lyric per second
                         FileActivity.SeekbarIncrement(1);
                         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_PlayLrc);
+                        if (PlayService.HasCueModel()) {
+                            Bundle bundle = new Bundle();
+                            bundle.putString("Title", PlayService.getCueModel().getCurrentTrack(FileActivity.GetSeekbarProgress() * 1000).getTitle());
+                            bundle.putString("Performer", PlayService.getCueModel().getCurrentTrack(FileActivity.GetSeekbarProgress() * 1000).getPerformer());
+                            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetMusicTitleFromCue, bundle);
+                        }
                     }
                     FileActivity.SeekBarPost(this, 1000);
                 } catch (IllegalStateException ex) {
