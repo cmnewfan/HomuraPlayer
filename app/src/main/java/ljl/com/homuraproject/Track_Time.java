@@ -17,4 +17,8 @@ public class Track_Time {
     public int getTime() {
         return ((minute * 60) + second) * 1000;
     }
+
+    public static int getTime(String timeString) {
+        return ((Integer.valueOf(timeString.substring(0, 2)) * 60) + Integer.valueOf(timeString.substring(3, 5))) * 1000;
+    }
 }

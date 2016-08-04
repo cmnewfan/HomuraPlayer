@@ -206,6 +206,9 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                         case Constants.ViewControl_PlayLrc:
                             lrcView.seekLrcToTime(seekBar.getProgress() * 1000);
                             break;
+                        case Constants.ViewControl_PlayLrcFromCue:
+                            lrcView.seekLrcToTime(msg.getData().getInt("LyricTime"));
+                            break;
                         case Constants.ViewControl_UnsupportdFormat:
                             Toast.makeText(MyApplication.getAppContext(), "暂不支持目标文件格式", Toast.LENGTH_SHORT).show();
                             break;

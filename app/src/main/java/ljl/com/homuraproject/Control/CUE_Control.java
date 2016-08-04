@@ -68,9 +68,9 @@ public class CUE_Control {
             } else if (info.contains("PERFORMER")) {
                 performer = info.substring(info.indexOf("\"") + 1, info.lastIndexOf("\""));
             } else if (info.contains("INDEX 01")) {
-                startTime = new Track_Time(info.substring(9)).getTime();
+                startTime = Track_Time.getTime(info.substring(9));
             } else if (info.contains("INDEX 00")) {
-                empty_time = new Track_Time(info.substring(9)).getTime();
+                empty_time = Track_Time.getTime(info.substring(9));
             }
         }
         return new CUE_Track(track_id, title, performer, startTime, empty_time);

@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import ljl.com.homuraproject.Activity.FileActivity;
 import ljl.com.homuraproject.Constants;
 import ljl.com.homuraproject.MusicData;
+import ljl.com.homuraproject.PlayService;
 import ljl.com.homuraproject.PostMan;
 
 /**
@@ -21,6 +22,7 @@ public class LyricControl {
     private static String currentLyric;
     private static String currentPlayingTitle;
     private static String currentArtist;
+    private static String currentLyricFileName;
     /**
      * init lyric control, including default catalog
      */
@@ -53,6 +55,14 @@ public class LyricControl {
 
     public static String getCurrentPlayingTitle() {
         return currentPlayingTitle;
+    }
+
+    public static void setCurrentPlayingTitleFromCUE(String title) {
+        currentPlayingTitle = title;
+    }
+
+    public static void setCurrentArtistFromCUE(String performer) {
+        currentArtist = performer;
     }
 
     public static String getCurrentArtist() {
@@ -108,13 +118,7 @@ public class LyricControl {
         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetMusicTitle);
         //find lyric of current playing file
         File targetLyricFile = getTargetLyricFile();
-        if (targetLyricFile != null) {
-            currentLyric = getLyric(targetLyricFile);
-            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
-        } else {
-            currentLyric = null;
-            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
-        }
+        setCurrentLyricFromFile(targetLyricFile);
     }
 
     /**get encoding type of lrc file
@@ -149,12 +153,28 @@ public class LyricControl {
      */
     public static void Update() {
         lyrics = new File(Constants.LyricFolder).listFiles();
-        File targetLyricFile = getTargetLyricFile();
+        if (!PlayService.HasCueModel()) {
+            File targetLyricFile = getTargetLyricFile();
+            currentLyricFileName = targetLyricFile.getName().substring(0, targetLyricFile.getName().lastIndexOf("."));
+            setCurrentLyricFromFile(targetLyricFile);
+        } else {
+            File targetLyricFile = getTargetLyricFileFromCUE(currentArtist, currentPlayingTitle);
+            currentLyricFileName = currentArtist + "-" + currentPlayingTitle;
+            setCurrentLyricFromFile(targetLyricFile);
+        }
+    }
+
+    public static String getCurrentLyricFileName() {
+        return currentLyricFileName;
+    }
+
+    private static void setCurrentLyricFromFile(File targetLyricFile) {
         if (targetLyricFile != null) {
             currentLyric = getLyric(targetLyricFile);
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         } else {
             currentLyric = null;
+            PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UpdateLyric);
         }
     }
 
@@ -163,6 +183,18 @@ public class LyricControl {
         for (int i = 0; i < lyrics.length; i++) {
             if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
                     .contains(currentPlayingTitle)) {
+                targetLyricFile = lyrics[i];
+                break;
+            }
+        }
+        return targetLyricFile;
+    }
+
+    private static File getTargetLyricFileFromCUE(String performer, String title) {
+        File targetLyricFile = null;
+        for (int i = 0; i < lyrics.length; i++) {
+            if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
+                    .equals(performer + "-" + title)) {
                 targetLyricFile = lyrics[i];
                 break;
             }
