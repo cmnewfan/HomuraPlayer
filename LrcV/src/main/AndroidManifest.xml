@@ -2,9 +2,7 @@
     package="douzi.android.lrcdemo"
     android:versionCode="1"
     android:versionName="1.0" >
-
     <uses-sdk
-        android:minSdkVersion="8"
+        android:minSdkVersion="11"
         android:targetSdkVersion="15" />
-
 </manifest>

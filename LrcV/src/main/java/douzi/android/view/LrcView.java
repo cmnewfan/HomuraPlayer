@@ -1,6 +1,7 @@
 package douzi.android.view;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -8,9 +9,13 @@ import android.graphics.Paint.Align;
 import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,8 +51,9 @@ public class LrcView extends View implements ILrcView{
 	private int mPaddingY = 10;		// padding of each row
 	private int mSeekLinePaddingX = 0; // Seek line padding x
 	private int mDisplayMode = DISPLAY_MODE_NORMAL;
-	private float actionDownX;
-	private LrcViewListener mLrcViewListener;
+    private float dragDownY = 0;
+    private float dragEndY = 0;
+    private LrcViewListener mLrcViewListener;
 	
 	private String mLoadingLrcTip = "Downloading lrc...";
 	
@@ -56,15 +62,30 @@ public class LrcView extends View implements ILrcView{
 	private PointF mPointerOneLastMotion = new PointF();
 	private PointF mPointerTwoLastMotion = new PointF();
 	private boolean mIsFirstMove = false; // whether is first move , some events can't not detected in touch down,
+    private float actionDownX;
 
-	public LrcView(Context context,AttributeSet attr){
-		super(context,attr);
+    public LrcView(Context context, AttributeSet attr) {
+        super(context,attr);
 		mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mPaint.setTextSize(mLrcFontSize);
-	}
+        this.setLongClickable(true);
+    }
 
-	public void setListener(LrcViewListener l){
-		mLrcViewListener = l;
+    private Bitmap getViewBitmap(View v, DragEvent event) {
+        v.setDrawingCacheEnabled(true);
+        v.buildDrawingCache();
+        Bitmap b1 = v.getDrawingCache();
+        Bitmap b = null;
+        if (event.getY() > dragDownY) {
+            b = Bitmap.createBitmap(b1, 0, (int) dragDownY, v.getWidth(), (int) (event.getY() - dragDownY));
+        } else {
+            b = Bitmap.createBitmap(b1, 0, (int) event.getY(), v.getWidth(), (int) (dragDownY - event.getY()));
+        }
+        return b;
+    }
+
+    public void setListener(LrcViewListener l) {
+        mLrcViewListener = l;
 	}
 	
 	public void setLoadingTipText(String text){
@@ -204,14 +225,42 @@ public class LrcView extends View implements ILrcView{
 			mLrcViewListener.onLrcSeeked(position, lrcRow);
 		}
 	}
-										  // such as two pointer touch, so it's good place to detect it in first move
-	
+
+    public List<LrcRow> getLrcRows() {
+        return mLrcRows;
+    }
+
+    // such as two pointer touch, so it's good place to detect it in first move
 	@Override
-	public boolean onTouchEvent(MotionEvent event) {
+    public boolean onDragEvent(DragEvent event) {
+        if (event.getAction() == DragEvent.ACTION_DRAG_STARTED) {
+            dragDownY = event.getY();
+        } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
+            ;
+        } else if (event.getAction() == DragEvent.ACTION_DRAG_ENTERED) {
+            Bitmap b1 = getViewBitmap(this, event);
+            FileOutputStream fos = null;
+            try {
+                fos = new FileOutputStream("sdcard/xx.png");
+                if (null != fos) {
+                    b1.compress(Bitmap.CompressFormat.PNG, 90, fos);
+                    fos.flush();
+                    fos.close();
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
 		if(mLrcRows == null || mLrcRows.size() == 0){
 			return super.onTouchEvent(event);
 		}
-		
 		switch (event.getAction()) {
 			//ACTION_DOWN: 表示用户开始触摸.
 			case MotionEvent.ACTION_DOWN:
@@ -220,8 +269,8 @@ public class LrcView extends View implements ILrcView{
 				mIsFirstMove = true;
 				this.actionDownX = event.getX();
 				invalidate();
-				break;
-			//ACTION_MOVE: 表示用户在移动(手指或者其他)
+                break;
+            //ACTION_MOVE: 表示用户在移动(手指或者其他)
 			case MotionEvent.ACTION_MOVE:
 				if (event.getPointerCount() == 2) {
 					//有两个触碰点
@@ -245,7 +294,9 @@ public class LrcView extends View implements ILrcView{
 				mDisplayMode = DISPLAY_MODE_NORMAL;
 				invalidate();
 				break;
-		}
+            default:
+                return false;
+        }
 		return true;
 	}
 
