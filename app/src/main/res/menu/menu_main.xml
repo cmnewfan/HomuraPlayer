@@ -9,7 +9,12 @@
     <item
         android:id="@+id/share"
         android:menuCategory="system"
+        android:orderInCategory="2"
+        android:title="分享歌曲" />
+    <item
+        android:id="@+id/share_lrc"
+        android:menuCategory="system"
         android:orderInCategory="3"
-        android:title="分享到" />
+        android:title="分享歌词" />
 
 </menu>

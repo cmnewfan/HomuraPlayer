@@ -5,10 +5,13 @@
  */
 package douzi.android.view;
 
+import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import android.util.Log;
 
 /**
  * 
@@ -16,7 +19,7 @@ import android.util.Log;
  * @author douzifly
  *
  */
-public class LrcRow implements Comparable<LrcRow>{
+public class LrcRow implements Comparable<LrcRow>, Parcelable {
     public final static String TAG = "LrcRow";
     
     /** begin time of this lrc row */
@@ -25,6 +28,8 @@ public class LrcRow implements Comparable<LrcRow>{
     public String content;
     
     public String strTime;
+
+    public boolean isChecked = false;
     
     public LrcRow(){}
     
@@ -78,7 +83,30 @@ public class LrcRow implements Comparable<LrcRow>{
     public int compareTo(LrcRow another) {
         return (int)(this.time - another.time);
     }
-    
-    
-    
+
+
+    public int describeContents() {
+        return 0;
+    }
+
+    public void writeToParcel(Parcel dest, int flags) {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("isChecked", isChecked);
+        bundle.putString("strTime", strTime);
+        bundle.putLong("time", time);
+        bundle.putString("content", content);
+        dest.writeBundle(bundle);
+    }
+
+    public static final Parcelable.Creator<LrcRow> CREATOR = new Parcelable.Creator<LrcRow>() {
+        public LrcRow createFromParcel(Parcel in) {
+            Bundle bundle = in.readBundle();
+            LrcRow lrcRow = new LrcRow(bundle.getString("strTime"), bundle.getLong("time"), bundle.getString("content"));
+            return lrcRow;
+        }
+
+        public LrcRow[] newArray(int size) {
+            return new LrcRow[size];
+        }
+    };
 }
