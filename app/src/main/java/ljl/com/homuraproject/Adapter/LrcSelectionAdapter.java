@@ -82,7 +82,7 @@ public class LrcSelectionAdapter extends BaseAdapter {
         this.checkBox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (checkBox.isChecked()) {
+                if (checkedList.indexOf(position) != -1) {
                     checkBox.setChecked(false);
                     mLrcRows.get(position).isChecked = false;
                     checkedList.remove(checkedList.indexOf(position));
@@ -91,6 +91,7 @@ public class LrcSelectionAdapter extends BaseAdapter {
                     mLrcRows.get(position).isChecked = true;
                     checkedList.add(position);
                 }
+                notifyDataSetChanged();
             }
         });
         this.textView = (TextView) convertView.findViewById(R.id.lrc_content);

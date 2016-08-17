@@ -559,25 +559,17 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                                 break;
                             case R.id.share:
                                 //begin when current playing title is not null
+                                shareTo(null);
+                                break;
+                            case R.id.share_lrc:
                                 if (FileActivity.this.lrcView.getLrcRows() != null) {
-
+                                    Intent intent = new Intent();
+                                    intent.setClass(FileActivity.this, LrcSelelctionActivity.class);
+                                    intent.putParcelableArrayListExtra("LrcRows", (ArrayList) lrcView.getLrcRows());
+                                    startActivityForResult(intent, 0);
+                                } else {
+                                    Toast.makeText(FileActivity.this, "并未检测到歌词.", Toast.LENGTH_SHORT).show();
                                 }
-                            /*if (LyricControl.getCurrentPlayingTitle() != null && (!LyricControl.getCurrentPlayingTitle().equals(""))) {
-                                Intent sendIntent = new Intent(Intent.ACTION_SEND);
-                                //set intent type
-                                sendIntent.setType("image/*");
-                                Uri targetUri = FileIO.getImageUri(currentPlayingFile.getParentFile());
-                                if (targetUri != null) {
-                                    sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
-                                }
-                                sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
-                                sendIntent.putExtra(Intent.EXTRA_TEXT, LyricControl.getCurrentPlayingTitle());
-                                sendIntent.putExtra(Intent.EXTRA_TITLE, "From HomuraPlayer");
-                                sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                startActivity(Intent.createChooser(sendIntent, "share"));
-                            } else {
-                                Toast.makeText(FileActivity.this, "该功能需要在当前正在播放音乐的时候使用", Toast.LENGTH_SHORT).show();
-                            }*/
                             default:
                                 break;
                         }
@@ -589,22 +581,34 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         });
     }
 
-    public static Intent getImageClipIntent() {
-        Intent intent = new Intent("com.android.camera.action.CROP");
-        intent.setClassName("com.android.camera", "com.android.camera.CropImage");
-        intent.setType("image/*");
-        intent.putExtra("crop", "true");
-        intent.putExtra("aspectX", 1);
-        intent.putExtra("aspectY", 1);
-        intent.putExtra("outputX", 80);
-        intent.putExtra("outputY", 80);
-        intent.putExtra("return-data", true);
-        return intent;
+    private void shareTo(String content) {
+        if (LyricControl.getCurrentPlayingTitle() != null && (!LyricControl.getCurrentPlayingTitle().equals(""))) {
+            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+            //set intent type
+            sendIntent.setType("image/*");
+            Uri targetUri = FileIO.getImageUri(currentPlayingFile.getParentFile());
+            if (targetUri != null) {
+                sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
+            }
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
+            if (content != null) {
+                sendIntent.putExtra(Intent.EXTRA_TEXT, LyricControl.getCurrentPlayingTitle() + "\r\n\r\n" + content);
+            } else {
+                sendIntent.putExtra(Intent.EXTRA_TEXT, LyricControl.getCurrentPlayingTitle());
+            }
+            sendIntent.putExtra(Intent.EXTRA_TITLE, "From HomuraPlayer");
+            sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(Intent.createChooser(sendIntent, "share"));
+        } else {
+            Toast.makeText(FileActivity.this, "该功能需要在当前正在播放音乐的时候使用", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Toast.makeText(FileActivity.this, "test", Toast.LENGTH_LONG);
+        if (data != null) {
+            shareTo(data.getStringExtra("SelectedLrc"));
+        }
     }
 
     /**
