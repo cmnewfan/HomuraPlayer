@@ -212,7 +212,7 @@ public class PlayService extends Service {
         for (int i = 0; i < files.length; i++) {
             File tFile = files[i];
             if (!tFile.isDirectory()) {
-                if (isSupportedCodec(tempFile.getName().substring(tempFile.getName().lastIndexOf(".")).toLowerCase())) {
+                if (isSupportedCodec(tFile.getName().substring(tFile.getName().lastIndexOf(".")).toLowerCase())) {
                     if (!tFile.getAbsolutePath().equals(tempFile.getAbsolutePath()) && flag) {
                         currentPlayList.add(tFile);
                     } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {

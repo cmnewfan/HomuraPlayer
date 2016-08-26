@@ -11,9 +11,10 @@ import java.util.List;
 
 import douzi.android.view.LrcRow;
 import ljl.com.homuraproject.Adapter.LrcSelectionAdapter;
+import ljl.com.homuraproject.Control.FileIO;
 import ljl.com.homuraproject.R;
 
-public class LrcSelelctionActivity extends Activity {
+public class LrcSelectionActivity extends Activity {
     private Button lrc_ok_button;
     private Button lrc_cancel_button;
     private List<LrcRow> lrcRows;
@@ -31,15 +32,17 @@ public class LrcSelelctionActivity extends Activity {
         this.lrc_ok_button = (Button) this.findViewById(R.id.lrc_ok_button);
         this.lrc_cancel_button = (Button) this.findViewById(R.id.lrc_cancel_button);
         this.lrc_select_view = (ListView) this.findViewById(R.id.lrc_select_view);
-        final LrcSelectionAdapter lrcSelectionAdapter = new LrcSelectionAdapter(LrcSelelctionActivity.this, lrcRows);
+        final LrcSelectionAdapter lrcSelectionAdapter = new LrcSelectionAdapter(LrcSelectionActivity.this, lrcRows);
         this.lrc_select_view.setAdapter(lrcSelectionAdapter);
         lrcSelectionAdapter.notifyDataSetChanged();
         this.lrc_ok_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent();
-                intent.setClass(LrcSelelctionActivity.this, FileActivity.class);
-                intent.putExtra("SelectedLrc", lrcSelectionAdapter.getLrcSelectionResult());
+                intent.setClass(LrcSelectionActivity.this, FileActivity.class);
+                //intent.putExtra("SelectedLrc", lrcSelectionAdapter.getLrcSelectionResult());
+                intent.putExtra("CoverUri", FileIO.getImageUri(FileActivity.getCurrentPlayingFile().getParentFile()));
+                intent.putStringArrayListExtra("Content", lrcSelectionAdapter.getLrcSelectionResultByArray());
                 setResult(0, intent);
                 finish();
             }

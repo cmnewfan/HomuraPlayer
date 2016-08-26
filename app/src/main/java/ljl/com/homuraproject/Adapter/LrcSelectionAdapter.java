@@ -33,6 +33,16 @@ public class LrcSelectionAdapter extends BaseAdapter {
         this.count = lrcRows.size();
     }
 
+    public ArrayList<String> getLrcSelectionResultByArray(){
+        ArrayList<String> result = new ArrayList<>();
+        for (int i = 0; i < mLrcRows.size(); i++) {
+            if (mLrcRows.get(i).isChecked) {
+                result.add(mLrcRows.get(i).content);
+            }
+        }
+        return result;
+    }
+
     public String getLrcSelectionResult() {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < mLrcRows.size(); i++) {

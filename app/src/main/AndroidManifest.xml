@@ -63,7 +63,7 @@
         <activity
             android:name=".Activity.GuideActivity"
             android:label="@string/title_activity_guide"></activity>
-        <activity android:name=".Activity.LrcSelelctionActivity"></activity>
+        <activity android:name=".Activity.LrcSelectionActivity"></activity>
     </application>
 
 </manifest>

@@ -10,6 +10,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.media.MediaScannerConnection;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -45,6 +49,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -564,7 +570,7 @@ public class FileActivity extends Activity implements View.OnTouchListener {
                             case R.id.share_lrc:
                                 if (FileActivity.this.lrcView.getLrcRows() != null) {
                                     Intent intent = new Intent();
-                                    intent.setClass(FileActivity.this, LrcSelelctionActivity.class);
+                                    intent.setClass(FileActivity.this, LrcSelectionActivity.class);
                                     intent.putParcelableArrayListExtra("LrcRows", (ArrayList) lrcView.getLrcRows());
                                     startActivityForResult(intent, 0);
                                 } else {
@@ -604,10 +610,141 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         }
     }
 
+    private void shareToWithLrc(ArrayList<String> content) {
+        if (LyricControl.getCurrentPlayingTitle() != null && (!LyricControl.getCurrentPlayingTitle().equals(""))) {
+            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+            //set intent type
+            sendIntent.setType("image/*");
+            Uri targetUri = FileIO.getImageUri(currentPlayingFile.getParentFile());
+            if (targetUri != null) {
+                targetUri = drawLrcAndCover(targetUri,content);
+                sendIntent.putExtra(Intent.EXTRA_STREAM, targetUri);
+            }
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, "分享");
+            sendIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(Intent.createChooser(sendIntent, "share"));
+        } else {
+            Toast.makeText(FileActivity.this, "该功能需要在当前正在播放音乐的时候使用", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (data != null) {
-            shareTo(data.getStringExtra("SelectedLrc"));
+            shareToWithLrc(data.getStringArrayListExtra("Content"));
+        }
+    }
+
+    private Uri drawLrcAndCover(Uri coverUri,ArrayList<String> content){
+        Paint mPaint = new Paint();
+        mPaint.setColor(Color.WHITE);
+        mPaint.setTextAlign(Paint.Align.LEFT);
+        mPaint.setTextSize(20);
+        mPaint.setStyle(Paint.Style.FILL);
+        mPaint.setAntiAlias(true);
+        if(coverUri==null){
+            return drawLrc(mPaint,content);
+        }
+        else {
+            Bitmap bitmap = null;
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), coverUri).copy(Bitmap.Config.ARGB_8888, true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(bitmap==null){
+                return drawLrc(mPaint,content);
+            }
+            else{
+                Bitmap tempBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight()+200, Bitmap.Config.ARGB_4444);
+                Canvas canvas = new Canvas(tempBitmap);
+                canvas.drawBitmap(bitmap, 0, 0, null);
+                canvas.drawRect(0, bitmap.getHeight(), bitmap.getWidth(), bitmap.getHeight() + 200, mPaint);
+                mPaint.setColor(Color.BLACK);
+                int lines = 1;
+                for(int i=0;i<content.size();i++){
+                    if(bitmap.getWidth()<mPaint.measureText(content.get(i))){
+                        ArrayList<String> textLines = getTextList(bitmap.getWidth(),content.get(i),mPaint.measureText(content.get(i)));
+                        for(int j=0;j<textLines.size();j++){
+                            canvas.drawText(textLines.get(j), 10, bitmap.getHeight() + (lines * 20), mPaint);
+                            lines++;
+                        }
+                    }else{
+                        canvas.drawText(content.get(i), 10, bitmap.getHeight() + (lines * 20), mPaint);
+                        lines++;
+                    }
+                }
+                mPaint.setTextAlign(Paint.Align.LEFT);
+                String ad = "From Homura Player";
+                canvas.drawText(ad, bitmap.getWidth() - mPaint.measureText(ad)-10, bitmap.getHeight() + (lines + 1) * 20, mPaint);
+                return getUriOfBitmap(tempBitmap);
+            }
+        }
+    }
+
+    private ArrayList<String> lyricFormat(ArrayList<String> content, int width, Paint paint) {
+        for(int i=0;i<content.size();i++){
+            while(width<paint.measureText(content.get(i))){
+                String subString = content.get(i).substring(width);
+                content.set(i,content.get(i).substring(0,width));
+                content.add(i+1,subString);
+            }
+        }
+        return content;
+    }
+
+    private ArrayList<String> getTextList(int screen_width, String text, float textWidth) {
+        int length = text.length();
+        int startIndex = 0;
+        int endIndex = Math.min((int) ((float) length * (screen_width / textWidth)), length);
+        int perLineLength = endIndex - startIndex;
+        ArrayList<String> lines = new ArrayList<String>();
+        lines.add(text.substring(startIndex, endIndex));
+        while (endIndex < length) {
+            startIndex = endIndex;
+            endIndex = Math.min(startIndex + perLineLength, length);
+            lines.add(text.substring(startIndex, endIndex));
+        }
+        return lines;
+    }
+
+    private Uri drawLrc(Paint mPaint,ArrayList<String> content){
+        mPaint.setTextAlign(Paint.Align.CENTER);
+        Bitmap tempBitmap = Bitmap.createBitmap(this.getWindow().getAttributes().width, this.getWindow().getAttributes().height, Bitmap.Config.ARGB_4444);
+        Canvas canvas = new Canvas(tempBitmap);
+        float height = 0;
+        int lines = 0;
+        for(int i=0;i<content.size();i++){
+            if(tempBitmap.getWidth()<mPaint.measureText(content.get(i))){
+                ArrayList<String> textLines = getTextList(tempBitmap.getWidth(),content.get(i),mPaint.measureText(content.get(i)));
+                for(int j=0;j<textLines.size();j++){
+                    canvas.drawText(textLines.get(j), 10, tempBitmap.getHeight() + (lines * 20), mPaint);
+                    lines++;
+                }
+            }else{
+                canvas.drawText(content.get(i), 10, tempBitmap.getHeight() + (lines * 20), mPaint);
+                lines++;
+            }
+        }
+        mPaint.setTextAlign(Paint.Align.RIGHT);
+        canvas.drawText("From Homura Player", tempBitmap.getWidth() - mPaint.measureText("From Homura Player"), height + 20, mPaint);
+        return getUriOfBitmap(tempBitmap);
+    }
+
+    private Uri getUriOfBitmap(Bitmap tempBitmap) {
+        File png_file = new File(Constants.LyricFolder + "/temp.png");
+        if(png_file.exists()){
+            png_file.delete();
+        }
+        try {
+            Boolean result;
+            result = png_file.createNewFile();
+            FileOutputStream fos = new FileOutputStream(png_file);
+            result = tempBitmap.compress(Bitmap.CompressFormat.JPEG, 100,fos);
+            return Uri.fromFile(png_file);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
