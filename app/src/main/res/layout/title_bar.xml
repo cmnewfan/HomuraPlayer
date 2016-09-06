@@ -8,7 +8,7 @@
         android:id="@+id/imageButton"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:scaleType="center"
+        android:scaleType="fitCenter"
         android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha" />
     <TextView
         android:id="@+id/myTitle"

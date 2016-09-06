@@ -1,8 +1,6 @@
 package ljl.com.homuraproject;
 
-/**
- * Created by hzfd on 2016/8/1.
- */
+
 public class Track_Time {
     private Integer minute;
     private Integer second;

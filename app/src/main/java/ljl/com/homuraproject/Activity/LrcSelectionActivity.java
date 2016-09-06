@@ -38,9 +38,9 @@ public class LrcSelectionActivity extends Activity {
         this.lrc_ok_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //return cover uri and lyrics to target activity
                 Intent intent = new Intent();
                 intent.setClass(LrcSelectionActivity.this, FileActivity.class);
-                //intent.putExtra("SelectedLrc", lrcSelectionAdapter.getLrcSelectionResult());
                 intent.putExtra("CoverUri", FileIO.getImageUri(FileActivity.getCurrentPlayingFile().getParentFile()));
                 intent.putStringArrayListExtra("Content", lrcSelectionAdapter.getLrcSelectionResultByArray());
                 setResult(0, intent);
@@ -50,6 +50,7 @@ public class LrcSelectionActivity extends Activity {
         this.lrc_cancel_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //do nothing
                 finish();
             }
         });

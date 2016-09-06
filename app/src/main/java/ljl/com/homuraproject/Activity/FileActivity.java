@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -23,8 +24,10 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
 import android.provider.MediaStore;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.PagerTitleStrip;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.telephony.PhoneStateListener;
@@ -36,6 +39,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AbsListView;
@@ -44,9 +48,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -69,6 +75,8 @@ import ljl.com.homuraproject.PostMan;
 import ljl.com.homuraproject.QueryResult;
 import ljl.com.homuraproject.R;
 import ljl.com.homuraproject.TTDownloader;
+
+import static ljl.com.homuraproject.R.color.material_blue_grey_800;
 
 /**
  * Created by Administrator on 2015/7/31.
@@ -96,11 +104,13 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private ImageView main_backgroundImage;
     private ViewPager viewPager;
     private PagerTabStrip pagerTabStrip;
+    private PagerTitleStrip pagerTitelStrip;
     private ImageButton mImageButton;
     private LinearLayout linear_layout_normal;
     private LinearLayout linear_layout_onlongclick;
     private LinearLayout linear_layout_onlongclick_text;
     private LinearLayout progress_layout;
+    private SeekBar lrc_seekbar;
     private static SharedPreferences sharedPreferences;
     private static int LastPlayingTime;
     private PowerManager.WakeLock wakeLock;
@@ -414,7 +424,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         final ArrayList<String> titleList = new ArrayList<String>();
         titleList.add("FileList");
         titleList.add("Lyric");
-        titleList.add("MyLrc");
         LayoutInflater lf = getLayoutInflater().from(this);
         View FileView = lf.inflate(R.layout.fileview, null);
         this.listView = (ListView) FileView.findViewById(R.id.file_listView);
@@ -468,7 +477,18 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         });
         View LrcView = lf.inflate(R.layout.lrcview, null);
         this.lrcView = (LrcView) LrcView.findViewById(R.id.lrcView);
-
+        this.lrc_seekbar = (SeekBar) LrcView.findViewById(R.id.lrc_seekbar);
+        this.lrc_seekbar.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                lrc_seekbar.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                int width = lrcView.getWidth();
+                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(1000
+                        , ViewGroup.LayoutParams.WRAP_CONTENT);
+                params.setMargins(width-90,0,0,0);
+                lrc_seekbar.setLayoutParams(params);
+            }
+        });
         final ArrayList<View> viewList = new ArrayList<View>();
         viewList.add(FileView);
         viewList.add(LrcView);
@@ -513,8 +533,12 @@ public class FileActivity extends Activity implements View.OnTouchListener {
      * init pager tab strip
      */
     private void InitPagerTabStrip() {
-        pagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
-        pagerTabStrip.setTabIndicatorColor(getResources().getColor(R.color.material_blue_grey_800));
+        if(pagerTabStrip==null){
+            pagerTabStrip = (PagerTabStrip) findViewById(R.id.pagertab);
+            ((ViewPager.LayoutParams) pagerTabStrip.getLayoutParams()).isDecor = true;
+        }
+        Resources res = getResources();
+        pagerTabStrip.setTabIndicatorColor(Color.WHITE);
         pagerTabStrip.setDrawFullUnderline(false);
         pagerTabStrip.setTextSpacing(50);
     }

@@ -89,6 +89,7 @@ public class LrcSelectionAdapter extends BaseAdapter {
         } else {
             this.checkBox.setChecked(false);
         }
+        //use OnClick instead of OnCheckedChange
         this.checkBox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -10,6 +10,7 @@ import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.DragEvent;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -90,6 +91,16 @@ public class LrcView extends View implements ILrcView{
 	
 	public void setLoadingTipText(String text){
 		mLoadingLrcTip = text;
+	}
+
+	public void setDoubleClickToChangeFontSize(boolean enable){
+		if(enable){
+			this.setOnClickListener(new OnClickListener() {
+				public void onClick(View v) {
+
+				}
+			});
+		}
 	}
 
 	@Override

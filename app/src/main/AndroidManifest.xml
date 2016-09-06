@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".MyApplication"
@@ -62,8 +63,8 @@
 
         <activity
             android:name=".Activity.GuideActivity"
-            android:label="@string/title_activity_guide"></activity>
-        <activity android:name=".Activity.LrcSelectionActivity"></activity>
+            android:label="@string/title_activity_guide" />
+        <activity android:name=".Activity.LrcSelectionActivity" />
     </application>
 
 </manifest>
