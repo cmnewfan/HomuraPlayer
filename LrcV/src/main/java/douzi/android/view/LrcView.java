@@ -13,6 +13,7 @@ import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Toast;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -64,6 +65,7 @@ public class LrcView extends View implements ILrcView{
 	private PointF mPointerTwoLastMotion = new PointF();
 	private boolean mIsFirstMove = false; // whether is first move , some events can't not detected in touch down,
     private float actionDownX;
+    private float actionDownY;
 
     public LrcView(Context context, AttributeSet attr) {
         super(context,attr);
@@ -278,7 +280,8 @@ public class LrcView extends View implements ILrcView{
 				Log.d(TAG, "down,mLastMotionY:" + mLastMotionY);
 				mLastMotionY = event.getY();
 				mIsFirstMove = true;
-				this.actionDownX = event.getX();
+				this.actionDownX = event.getRawX();
+                this.actionDownY = event.getRawY();
 				invalidate();
                 break;
             //ACTION_MOVE: 表示用户在移动(手指或者其他)
@@ -295,6 +298,24 @@ public class LrcView extends View implements ILrcView{
 					//if scaling but pointer become not two ,do nothing.
 					return true;
 				}
+                final int width = getWidth() ;
+                if(width-this.actionDownX<100){
+                    if(Math.abs(event.getRawY()-this.actionDownY)>mMinSeekFiredOffset){
+                        if(event.getRawY()-this.actionDownY>0){
+                            if(mLrcFontSize-1>=mMinLrcFontSize) {
+                                mLrcFontSize -= 1;
+                                invalidate();
+                            }
+                        }
+                        else{
+                            if(mLrcFontSize+1<=mMaxLrcFontSize) {
+                                mLrcFontSize += 1;
+                                invalidate();
+                            }
+                        }
+                    }
+                    break;
+                }
 				doSeek(event);
 				break;
 			case MotionEvent.ACTION_CANCEL:
