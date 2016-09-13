@@ -101,7 +101,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private TextView total_Time;
     private LrcView lrcView;
     private TextView myTitle;
-    private ImageView main_backgroundImage;
     private ViewPager viewPager;
     private PagerTabStrip pagerTabStrip;
     private PagerTitleStrip pagerTitelStrip;
@@ -110,7 +109,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
     private LinearLayout linear_layout_onlongclick;
     private LinearLayout linear_layout_onlongclick_text;
     private LinearLayout progress_layout;
-    private SeekBar lrc_seekbar;
     private static SharedPreferences sharedPreferences;
     private static int LastPlayingTime;
     private PowerManager.WakeLock wakeLock;
@@ -477,18 +475,6 @@ public class FileActivity extends Activity implements View.OnTouchListener {
         });
         View LrcView = lf.inflate(R.layout.lrcview, null);
         this.lrcView = (LrcView) LrcView.findViewById(R.id.lrcView);
-        this.lrc_seekbar = (SeekBar) LrcView.findViewById(R.id.lrc_seekbar);
-        this.lrc_seekbar.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                lrc_seekbar.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                int width = lrcView.getWidth();
-                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(1000
-                        , ViewGroup.LayoutParams.WRAP_CONTENT);
-                params.setMargins(width-90,0,0,0);
-                lrc_seekbar.setLayoutParams(params);
-            }
-        });
         final ArrayList<View> viewList = new ArrayList<View>();
         viewList.add(FileView);
         viewList.add(LrcView);

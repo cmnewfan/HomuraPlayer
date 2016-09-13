@@ -76,7 +76,8 @@
                     android:minHeight="2.0dip"
                     android:paddingLeft="12dp"
                     android:paddingRight="12dp"
-                    android:thumbOffset="12.0dip"></SeekBar>
+                    android:thumbOffset="12.0dip">
+                </SeekBar>
 
                 <TextView
                     android:id="@+id/totalTime_tv"

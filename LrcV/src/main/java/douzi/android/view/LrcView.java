@@ -300,20 +300,7 @@ public class LrcView extends View implements ILrcView{
 				}
                 final int width = getWidth() ;
                 if(width-this.actionDownX<100){
-                    if(Math.abs(event.getRawY()-this.actionDownY)>mMinSeekFiredOffset){
-                        if(event.getRawY()-this.actionDownY>0){
-                            if(mLrcFontSize-1>=mMinLrcFontSize) {
-                                mLrcFontSize -= 1;
-                                invalidate();
-                            }
-                        }
-                        else{
-                            if(mLrcFontSize+1<=mMaxLrcFontSize) {
-                                mLrcFontSize += 1;
-                                invalidate();
-                            }
-                        }
-                    }
+                    doScaleFontSize(event);
                     break;
                 }
 				doSeek(event);
@@ -332,7 +319,24 @@ public class LrcView extends View implements ILrcView{
 		return true;
 	}
 
-	private void doScale(MotionEvent event) {
+    private void doScaleFontSize(MotionEvent event) {
+        if(Math.abs(event.getRawY()-this.actionDownY)>mMinSeekFiredOffset){
+            if(event.getRawY()-this.actionDownY>0){
+                if(mLrcFontSize-1>=mMinLrcFontSize) {
+                    mLrcFontSize -= 1;
+                    invalidate();
+                }
+            }
+            else{
+                if(mLrcFontSize+1<=mMaxLrcFontSize) {
+                    mLrcFontSize += 1;
+                    invalidate();
+                }
+            }
+        }
+    }
+
+    private void doScale(MotionEvent event) {
 		if(mDisplayMode == DISPLAY_MODE_SEEK){
 			// if Seeking but pointer become two, become to scale mode
 			mDisplayMode = DISPLAY_MODE_SCALE;

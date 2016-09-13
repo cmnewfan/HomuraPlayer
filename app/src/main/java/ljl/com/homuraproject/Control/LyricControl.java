@@ -1,5 +1,6 @@
 package ljl.com.homuraproject.Control;
 
+import android.content.Context;
 import android.os.Environment;
 
 import java.io.BufferedInputStream;
@@ -23,10 +24,12 @@ public class LyricControl {
     private static String currentPlayingTitle;
     private static String currentArtist;
     private static String currentLyricFileName;
+    private static LyricDatabase mLyricDatabase;
     /**
      * init lyric control, including default catalog
      */
     public static void Init() {
+        mLyricDatabase = LyricDatabase.getInstance();
         if (HasSdCard()) {
             File file = new File(Constants.LyricFolder);
             if (!file.exists()) {
@@ -80,36 +83,6 @@ public class LyricControl {
             //needs broadcast
             currentPlayingTitle = FileActivity.getCurrentPlayingFile().getName();
             currentArtist = "";
-            /*String artistName = "";
-            try {
-                AudioFile currentAudioFile = AudioFileIO.read(FileActivity.currentPlayingFile);
-                Tag tag = currentAudioFile.getTag();
-                String test = "";
-                if (FileActivity.currentPlayingFile.getAbsolutePath().endsWith("mp3")) {
-                    if (tag == null) {
-                        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                        mediaMetadataRetriever.setDataSource(FileActivity.currentPlayingFile.getAbsolutePath());
-                        if (mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) != null) {
-                            FileActivity.currentArtist = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                            test = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                            FileActivity.currentPlayingTitle = test;
-                        }
-                    } else {
-                        String title = tag.getFirst(FieldKey.TITLE);
-                        artistName = tag.getFirst(FieldKey.ARTIST);
-                        FileActivity.currentArtist = new String(artistName.getBytes("ISO-8859-1"), "GBK");
-                        FileActivity.currentPlayingTitle = new String(title.getBytes("ISO-8859-1"), "GBK");
-                    }
-                } else {
-                    String title = tag.getFirst(FieldKey.TITLE);
-                    FileActivity.currentPlayingTitle = title;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (Exception ex) {
-                FileActivity.currentPlayingTitle = FileActivity.currentPlayingFile.getAbsolutePath().substring
-                        (FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("/") + 1, FileActivity.currentPlayingFile.getAbsolutePath().lastIndexOf("."));
-            }*/
             PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastUpdate);
         } else {
             currentPlayingTitle = mMusicData.getTitle();
@@ -179,15 +152,40 @@ public class LyricControl {
     }
 
     private static File getTargetLyricFile() {
+        mLyricDatabase.open();
         File targetLyricFile = null;
-        for (int i = 0; i < lyrics.length; i++) {
+        String targetLyricPath=mLyricDatabase.query(FileActivity.getCurrentPlayingFile());
+        if(targetLyricPath==null){
+            for (int i = 0; i < lyrics.length; i++) {
+                if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
+                        .contains(currentPlayingTitle)) {
+                    targetLyricFile = lyrics[i];
+                    break;
+                }
+            }
+            if(targetLyricFile!=null){
+                mLyricDatabase.insert(FileActivity.getCurrentPlayingFile().getAbsolutePath(),targetLyricFile.getAbsolutePath());
+                mLyricDatabase.close();
+                return targetLyricFile;
+            }
+            else{
+                mLyricDatabase.close();
+                return null;
+            }
+        }
+        else{
+            mLyricDatabase.close();
+            return new File(targetLyricPath);
+        }
+
+        /*for (int i = 0; i < lyrics.length; i++) {
             if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
                     .contains(currentPlayingTitle)) {
                 targetLyricFile = lyrics[i];
                 break;
             }
         }
-        return targetLyricFile;
+        return targetLyricFile;*/
     }
 
     private static File getTargetLyricFileFromCUE(String performer, String title) {
