@@ -14,7 +14,6 @@ import ljl.com.homuraproject.R;
  */
 public class ErrorActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
-        // TODO Auto-generated method stub
         super.onCreate(savedInstanceState);
         setContentView(R.layout.error);
         showDialog("");

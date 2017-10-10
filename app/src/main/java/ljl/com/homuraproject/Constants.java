@@ -18,8 +18,8 @@ public class Constants {
     final public static int ViewControl_ToastUpdate = 9;
     final public static int ViewControl_OpenOptionsMenu = 10;
     final public static int ViewControl_OnKeyDown = 11;
-    final public static int ViewControl_OnPrevious = 12;
-    final public static int ViewControl_OnNext = 13;
+    final public static int ViewControl_Tagged = 12;
+    final public static int ViewControl_Untagged = 13;
     final public static int ViewControl_SetMusicTitleFromCue = 14;
     final public static int ViewControl_PlayLrcFromCue = 15;
     final public static String PlayServiceCommand = "PlayServiceCommand";

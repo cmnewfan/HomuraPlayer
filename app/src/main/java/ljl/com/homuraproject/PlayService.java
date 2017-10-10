@@ -6,15 +6,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.RemoteViews;
 
 import java.io.File;
@@ -35,6 +30,7 @@ public class PlayService extends Service {
     final private static String BroadCastName = "com.Broadcast.PlayServiceBroadcast";
     final private static String[] SupportedCodec = new String[]{".ogg", ".mp3", ".m4a", ".flac", ".wmv", ".cue"};
     final private static int NOTIFY_ID = 100;
+    boolean isLoopMode;
     private static ArrayList<File> currentPlayList;
     private static MediaPlayer myPlayer;
     private static String state;
@@ -209,7 +205,6 @@ public class PlayService extends Service {
     }
 
     public static void generatePlayList(File tempFile, File[] files) {
-        //FileActivity.currentPlayingFile = tempFile;
         FileActivity.setCurrentPlayingFile(tempFile);
         currentPlayList = new ArrayList<File>();
         currentPlayList.add(tempFile);
@@ -222,6 +217,23 @@ public class PlayService extends Service {
                         currentPlayList.add(tFile);
                     } else if (tFile.getAbsolutePath().equals(tempFile.getAbsolutePath())) {
                         flag = true;
+                    }
+                }
+            }
+        }
+        LyricControl.sendCurrentLyric();
+    }
+
+    public static void generatePlayList(MusicData[] list, int index) {
+        FileActivity.setCurrentPlayingFile(new File(list[index].getSource()));
+        currentPlayList = new ArrayList<File>();
+        currentPlayList.add(new File(list[index].getSource()));
+        for (int i = 0; i < list.length; i++) {
+            File tFile = new File(list[i].getSource());
+            if (!tFile.isDirectory()) {
+                if (isSupportedCodec(tFile.getName().substring(tFile.getName().lastIndexOf(".")).toLowerCase())) {
+                    if (i != index) {
+                        currentPlayList.add(tFile);
                     }
                 }
             }
@@ -298,6 +310,11 @@ public class PlayService extends Service {
                     stopSelf();
                 }
                 int lastTime = bundle.getInt("LastTime");
+                if (bundle.getString("Mode", "Normal").equals("Loop")) {
+                    isLoopMode = true;
+                } else {
+                    isLoopMode = false;
+                }
                 switch (op) {
                     case 1:
                         stop();
@@ -340,6 +357,9 @@ public class PlayService extends Service {
     private void init(Uri uri, int startTime) {
         this.myPlayer = MediaPlayer.create(this, uri);
         if (this.myPlayer == null) {
+            if (isLoopMode) {
+
+            }
             return;
         }
         FileActivity.SetSeekbarMax(this.myPlayer.getDuration() / 1000);
@@ -361,9 +381,22 @@ public class PlayService extends Service {
                     PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
                     FileActivity.NotifyDataChangd();
                 } else {
-                    FileActivity.SetSeekbarProgress(0);
-                    PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
-                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
+                    if (isLoopMode) {
+                        if (myPlayer != null && myPlayer.isPlaying()) {
+                            myPlayer.stop();
+                        }
+                        init(Uri.fromFile(currentPlayList.get(0)), 0);
+                        FileActivity.setCurrentPlayingFile(currentPlayList.get(0));
+                        LyricControl.sendCurrentLyric();
+                        play();
+                        PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_PlayFromService);
+                        FileActivity.NotifyDataChangd();
+                    } else {
+                        stop();
+                        FileActivity.SetSeekbarProgress(0);
+                        PostMan.sendMessage(Constants.PlayServiceCommand, Constants.PlayServiceCommand_Stop);
+                        PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_SetTitle);
+                    }
                 }
             }
         });

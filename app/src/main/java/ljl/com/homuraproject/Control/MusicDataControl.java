@@ -57,7 +57,9 @@ public class MusicDataControl {
                         MediaStore.Audio.Media.DATA,
                         MediaStore.Audio.Media.ARTIST,
                         MediaStore.Audio.Media.DISPLAY_NAME,
-                        MediaStore.Audio.Media.TRACK
+                        MediaStore.Audio.Media.TRACK,
+                        MediaStore.Audio.Media.DEFAULT_SORT_ORDER,
+                        MediaStore.Audio.AudioColumns.TRACK,
                 },
                 "_data=?",
                 new String[]{file.getAbsolutePath()},

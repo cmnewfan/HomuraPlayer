@@ -79,6 +79,7 @@ public class FileIO {
             target_file.delete();
             //sort parent file
             FileAdapter.setFiles(FileIO.SortFiles(parent_file));
+            //RecyclerViewAdapter.setFiles(FileIO.SortFiles(parent_file));
             FileActivity.NotifyDataChangd();
         } else {
             File parent_file = target_file.getParentFile();
@@ -94,6 +95,7 @@ public class FileIO {
                     } else {
                         PlayService.generatePlayList(FileActivity.getCurrentPlayingFile(), FileIO.SortFiles(parent_file));
                         FileAdapter.setFiles(FileIO.SortFiles(parent_file));
+                        //RecyclerViewAdapter.setFiles(FileIO.SortFiles(parent_file));
                     }
                     FileActivity.NotifyDataChangd();
                     PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_ToastSuccess);
@@ -103,6 +105,7 @@ public class FileIO {
             } else {
                 target_file.delete();
                 FileAdapter.setFiles(FileIO.SortFiles(parent_file));
+                //RecyclerViewAdapter.setFiles(FileIO.SortFiles(parent_file));
                 PlayService.generatePlayList(FileActivity.getCurrentPlayingFile(), FileIO.SortFiles(FileActivity.getCurrentPlayingFile().getParentFile()));
                 FileActivity.NotifyDataChangd();
             }

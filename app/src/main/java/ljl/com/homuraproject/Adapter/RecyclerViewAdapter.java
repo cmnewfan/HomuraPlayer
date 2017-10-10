@@ -7,75 +7,63 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.io.File;
 
 import ljl.com.homuraproject.Activity.FileActivity;
 import ljl.com.homuraproject.Constants;
-import ljl.com.homuraproject.Control.FavouriteDatabase;
 import ljl.com.homuraproject.Control.FileIO;
-import ljl.com.homuraproject.Control.MusicDataControl;
-import ljl.com.homuraproject.MusicData;
+import ljl.com.homuraproject.MyApplication;
 import ljl.com.homuraproject.PlayService;
 import ljl.com.homuraproject.PostMan;
 import ljl.com.homuraproject.R;
 
-
 /**
- * adapter of list view in FileActivity
- * Created by Administrator on 2015/7/31.
+ * Created by hzfd on 2016/9/14.
  */
-public class FileAdapter extends BaseAdapter {
+public class RecyclerViewAdapter extends RecyclerView.Adapter {
     private static File[] files;
     private Context context;
     private LayoutInflater inflater;
     private File tempFile;
 
-    public FileAdapter(Context context) {
-        this.context = context;
-        this.inflater = LayoutInflater.from(context);
-    }
+    public class MyViewHolder extends RecyclerView.ViewHolder {
+        private TextView mTextView;
 
-    @Override
-    public int getCount() {
-        if (files == null)
-            return 0;
-        else
-            return files.length;
-    }
-
-    @Override
-    public Object getItem(int i) {
-        return i;
-    }
-
-    @Override
-    public long getItemId(int i) {
-        return i;
-    }
-
-    @Override
-    public View getView(int i, View view, ViewGroup viewGroup) {
-        if (view == null) {
-            view = inflater.inflate(R.layout.listview_item, null);
-        } else {
-            final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
-            fileName.setText(files[i].getName());
-            highlightFolderAndPlayingFile(i, fileName);
-            return view;
+        public MyViewHolder(View itemView, ViewGroup parent) {
+            super(itemView);
+            mTextView = (TextView) itemView.findViewById(R.id.itmMessage);
+            if (parent != null) {
+                mTextView.getLayoutParams().width = parent.getWidth();
+            }
         }
-        final TextView fileName = (TextView) view.findViewById(R.id.itmMessage);
-        fileName.setText(files[i].getName());
-        highlightFolderAndPlayingFile(i, fileName);
-        fileName.setOnClickListener(new View.OnClickListener() {
+    }
+
+    public RecyclerViewAdapter(Context context) {
+        this.context = context;
+    }
+
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = View.inflate(this.context, R.layout.listview_item, null);
+        MyViewHolder mViewHolder = new MyViewHolder(view, parent);
+        return mViewHolder;
+    }
+
+    @Override
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+        final MyViewHolder mViewHolder = new MyViewHolder(holder.itemView, null);
+        mViewHolder.mTextView.setText(files[position].getName());
+        highlightFolderAndPlayingFile(position, mViewHolder.mTextView);
+        mViewHolder.mTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + fileName.getText().toString());
+                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + mViewHolder.mTextView.getText().toString());
                 if (tempFile.isDirectory()) {
                     //target file is directory
                     files = FileIO.SortFiles(tempFile);
@@ -101,51 +89,39 @@ public class FileAdapter extends BaseAdapter {
                     } else {
                         PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UnsupportdFormat);
                     }
-                }
-                else {
-                    PostMan.sendMessage(Constants.ViewControl,Constants.ViewControl_UnsupportdFormat);
+                } else {
+                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_UnsupportdFormat);
                 }
             }
         });
-        fileName.setOnLongClickListener(new View.OnLongClickListener() {
+        mViewHolder.mTextView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + fileName.getText().toString());
+                tempFile = new File(FileActivity.getCurrentDirectory().getAbsolutePath() + File.separator + mViewHolder.mTextView.getText().toString());
                 PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_OpenOptionsMenu);
                 ClipData clipData = ClipData.newPlainText("", "");
                 clipData.addItem(new ClipData.Item(tempFile.getPath()));
-                MusicData data = MusicDataControl.getMusicDataFromFile(tempFile);
-                String tag = FavouriteDatabase.getInstance().isTagged(data.getSource(), data.getTitle());
-                clipData.addItem(new ClipData.Item(data.getTitle()));
-                clipData.addItem(new ClipData.Item(data.getArtist()));
-                clipData.addItem(new ClipData.Item(String.valueOf(data.getTrack())));
-                clipData.addItem(new ClipData.Item(tag));
-                clipData.addItem(new ClipData.Item(tempFile.getAbsolutePath()));
                 View.DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(view);
                 view.startDrag(clipData, shadowBuilder, view, 0);
-                if (tag.equals("Tagged")) {
-                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_Tagged);
-                } else {
-                    PostMan.sendMessage(Constants.ViewControl, Constants.ViewControl_Untagged);
-                }
                 return false;
             }
         });
-        return view;
     }
 
-    /**
-     * highlight playing folder and file
-     *
-     * @param i        index of target file in files
-     * @param fileName target text view
-     */
+    @Override
+    public int getItemCount() {
+        if (files == null)
+            return 0;
+        else
+            return files.length;
+    }
+
     private void highlightFolderAndPlayingFile(int i, TextView fileName) {
         if (FileActivity.getCurrentPlayingFile() != null && FileActivity.getCurrentPlayingFile().getAbsolutePath().contains(files[i].getAbsolutePath())) {
-            Drawable rightDrawable = context.getResources().getDrawable(R.drawable.play_icon);
+            Drawable rightDrawable = MyApplication.getAppContext().getResources().getDrawable(R.drawable.play_icon);
             rightDrawable.setBounds(0, 0, rightDrawable.getMinimumWidth(), rightDrawable.getMinimumHeight());
             if (files[i].isDirectory()) {
-                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+                Drawable leftDrawable = MyApplication.getAppContext().getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
                 leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
                 fileName.setCompoundDrawables(leftDrawable, null, rightDrawable, null);
                 fileName.setTextColor(Color.YELLOW);
@@ -155,7 +131,7 @@ public class FileAdapter extends BaseAdapter {
             }
         } else {
             if (files[i].isDirectory()) {
-                Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+                Drawable leftDrawable = MyApplication.getAppContext().getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
                 leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
                 fileName.setCompoundDrawables(leftDrawable, null, null, null);
                 fileName.setTextColor(Color.WHITE);
@@ -165,17 +141,13 @@ public class FileAdapter extends BaseAdapter {
             }
         }
         if (files[i].isDirectory()) {
-            Drawable leftDrawable = context.getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
+            Drawable leftDrawable = MyApplication.getAppContext().getResources().getDrawable(R.drawable.abc_ic_menu_copy_mtrl_am_alpha);
             leftDrawable.setBounds(0, 0, leftDrawable.getMinimumWidth(), leftDrawable.getMinimumHeight());
             fileName.setCompoundDrawables(leftDrawable, fileName.getCompoundDrawables()[1], fileName.getCompoundDrawables()[2], fileName.getCompoundDrawables()[3]);
         }
     }
 
     public static void setFiles(File[] files) {
-        FileAdapter.files = files;
-    }
-
-    public static File[] getFiles() {
-        return files;
+        RecyclerViewAdapter.files = files;
     }
 }

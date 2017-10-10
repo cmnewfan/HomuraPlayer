@@ -1,6 +1,5 @@
 package ljl.com.homuraproject.Control;
 
-import android.content.Context;
 import android.os.Environment;
 
 import java.io.BufferedInputStream;
@@ -29,7 +28,7 @@ public class LyricControl {
      * init lyric control, including default catalog
      */
     public static void Init() {
-        mLyricDatabase = LyricDatabase.getInstance();
+        //mLyricDatabase = LyricDatabase.getInstance();
         if (HasSdCard()) {
             File file = new File(Constants.LyricFolder);
             if (!file.exists()) {
@@ -152,7 +151,7 @@ public class LyricControl {
     }
 
     private static File getTargetLyricFile() {
-        mLyricDatabase.open();
+        /*mLyricDatabase.open();
         File targetLyricFile = null;
         String targetLyricPath=mLyricDatabase.query(FileActivity.getCurrentPlayingFile());
         if(targetLyricPath==null){
@@ -176,16 +175,16 @@ public class LyricControl {
         else{
             mLyricDatabase.close();
             return new File(targetLyricPath);
-        }
-
-        /*for (int i = 0; i < lyrics.length; i++) {
+        }*/
+        File targetLyricFile = null;
+        for (int i = 0; i < lyrics.length; i++) {
             if (lyrics[i].getName().substring(lyrics[i].getName().lastIndexOf("/") + 1, lyrics[i].getName().lastIndexOf("."))
                     .contains(currentPlayingTitle)) {
                 targetLyricFile = lyrics[i];
                 break;
             }
         }
-        return targetLyricFile;*/
+        return targetLyricFile;
     }
 
     private static File getTargetLyricFileFromCUE(String performer, String title) {
